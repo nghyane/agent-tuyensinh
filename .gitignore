@@ -6,3 +6,5 @@ dist
 .env
 *.db
 *.db-*
+# .vscode - Keeping this to track TypeScript configuration
+.windsurf
