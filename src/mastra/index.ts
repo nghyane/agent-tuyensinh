@@ -12,6 +12,6 @@ export const mastra = new Mastra({
   
   logger: createLogger({
     name: 'Mastra',
-    level: 'info',
+    level: 'debug',
   }),
 });
