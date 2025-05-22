@@ -1,4 +1,4 @@
-import { LibSQLVector } from "@mastra/core/vector/libsql";
+import { LibSQLVector } from "@mastra/libsql";
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { readFile } from "fs/promises";
@@ -19,7 +19,9 @@ const vectorDB = new LibSQLVector({
 const index = await vectorDB.listIndexes();
 
 if (!index.includes("fpt_university")) {
-    vectorDB.deleteIndex("fpt_university");
+    vectorDB.deleteIndex({
+        indexName: "fpt_university",
+    });
 
     vectorDB.createIndex({
         dimension: 1536,

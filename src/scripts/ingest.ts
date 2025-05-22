@@ -44,10 +44,15 @@ async function parseWithPandoc(filePath: string): Promise<string> {
   }
 }
 
-function parseGeminiPartsJson<T = any>(parts: any): T {
-  const textPart = parts.find((p: any) => p.type === 'text');
+function parseGeminiPartsJson<T = any>(parts: any): T | null {
+  if (!Array.isArray(parts)) {
+    console.error("Invalid metadata parts: not an array", parts);
+    return null;
+  }
+  const textPart = parts.find((p: any) => p && typeof p === 'object' && p.type === 'text');
   if (!textPart || typeof textPart.text !== 'string') {
-    throw new Error("No text part found");
+    console.error("No valid text part found in metadata parts:", parts);
+    return null;
   }
 
   const cleaned = textPart.text
@@ -56,7 +61,17 @@ function parseGeminiPartsJson<T = any>(parts: any): T {
     .replace(/```$/, '')
     .trim();
 
-  return JSON.parse(cleaned);
+  if (!cleaned) {
+    console.error("Cleaned text part is empty after removing markdown fences.");
+    return null;
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error("Failed to parse JSON from cleaned text part:", cleaned, error);
+    return null;
+  }
 }
 
 /**
@@ -75,11 +90,19 @@ export async function ingestAllDocs(dataDir = "./data", jsonlPath = "./data/chun
 
       const metadataAgent = mastra.getAgent("metadataAgent");
       const metadata = await metadataAgent.generate(officeDocument).catch((err) => {
-        console.error(`[ERROR] Failed to ingest ${file}:`, err);
+        console.error(`[ERROR] Failed to ingest ${file}: Could not generate metadata.`, err);
         return null;
       });
 
-      if (!metadata) {
+      if (!metadata || !metadata.response || !Array.isArray(metadata.response.messages) || metadata.response.messages.length === 0) {
+        console.error(`[ERROR] Failed to ingest ${file}: Invalid or empty metadata response.`);
+        continue;
+      }
+      
+      const parsedMetadata = parseGeminiPartsJson(metadata.response.messages[0].content);
+
+      if (!parsedMetadata) {
+        console.error(`[ERROR] Failed to ingest ${file}: Could not parse metadata JSON.`);
         continue;
       }
 
@@ -87,7 +110,7 @@ export async function ingestAllDocs(dataDir = "./data", jsonlPath = "./data/chun
       const document = MDocument.fromMarkdown(officeDocument, {
         source: file,
         category: "office_document",
-        ...parseGeminiPartsJson(metadata.response.messages[0].content)
+        ...parsedMetadata
       });
 
       const chunks = await document.chunk({

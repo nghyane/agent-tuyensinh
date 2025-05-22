@@ -1,11 +1,11 @@
 import { createTool } from "@mastra/core/tools";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { LibSQLVector } from "@mastra/core/vector/libsql";
+import { LibSQLVector } from "@mastra/libsql";
 import { embed } from "ai";
 
-// Khởi tạo kết nối vector database
-const pgVector = new LibSQLVector({
+
+const dbVector = new LibSQLVector({
     connectionUrl: "file:./data/mastra.db",
 });
 
@@ -14,6 +14,7 @@ export const vectorQueryTool = createTool({
     description: "Search for information in the school's admissions database",
     inputSchema: z.object({
         query: z.string().describe("Search query"),
+        topK: z.number().optional().describe("Number of results to return"),
         filters: z.object({
             year: z.string().optional().describe("Admission year"),
             documentType: z.string().optional().describe("Document type"),
@@ -38,10 +39,10 @@ export const vectorQueryTool = createTool({
         }
 
 
-        const results = await pgVector.query({
+        const results = await dbVector.query({
             indexName: "admissions_data",
             queryVector: embedding,
-            topK: 5,
+            topK: context.topK || 5,
             filter: Object.keys(filter).length > 0 ? filter : undefined
         });
 
