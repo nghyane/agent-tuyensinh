@@ -18,16 +18,16 @@ const vectorDB = new LibSQLVector({
 
 const index = await vectorDB.listIndexes();
 
-if (!index.includes("fpt_university")) {
+if (index.includes("admissions_data")) {
     vectorDB.deleteIndex({
-        indexName: "fpt_university",
-    });
-
-    vectorDB.createIndex({
-        dimension: 1536,
-        indexName: "fpt_university",
+        indexName: "admissions_data",
     });
 }
+
+vectorDB.createIndex({
+    dimension: 1536,
+    indexName: "admissions_data",
+});
 
 
 const chunks = await readFile("./data/chunks.jsonl", "utf-8");
@@ -44,7 +44,7 @@ const embeddings = await embedMany({
 
 // upsert documents
 await vectorDB.upsert({
-    indexName: "fpt_university",
+    indexName: "admissions_data",
     vectors: embeddings.embeddings,
     metadata: documents.map((doc) => doc),
 });
