@@ -1,6 +1,6 @@
 import { LibSQLVector } from "@mastra/libsql";
 import { embed, embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { readFile } from "fs/promises";
 
 export type Document = {
@@ -24,11 +24,10 @@ if (!index.includes("fpt_university")) {
     });
 
     vectorDB.createIndex({
-        dimension: 1536,
+        dimension: 768,
         indexName: "fpt_university",
     });
 }
-
 
 const chunks = await readFile("./data/chunks.jsonl", "utf-8");
 
@@ -36,9 +35,9 @@ const documents = chunks.split("\n").filter(Boolean).map((chunk) => {
     return JSON.parse(chunk) as Document;
 })
 
-// embed documents
+// embed documents using Google text-embedding-004
 const embeddings = await embedMany({
-    model: openai.embedding("text-embedding-3-small"),
+    model: google.textEmbeddingModel("text-embedding-004"),
     values: documents.map((doc) => doc.text),
 });
 
@@ -49,4 +48,4 @@ await vectorDB.upsert({
     metadata: documents.map((doc) => doc),
 });
 
-console.log("Documents upserted successfully");
+console.log("Documents upserted successfully with Google text-embedding-004 (768 dimensions)");

@@ -1,5 +1,5 @@
 import { Mastra } from '@mastra/core/mastra';
-import { createLogger } from '@mastra/core/logger';
+import { ConsoleLogger } from '@mastra/core/logger';
 import { LibSQLStore } from '@mastra/libsql';
 
 import { admissionsAgent, metadataAgent } from '@/mastra/agents';
@@ -10,8 +10,5 @@ export const mastra = new Mastra({
     url: ":memory:",
   }),
   
-  logger: createLogger({
-    name: 'Mastra',
-    level: 'info',
-  }),
+  logger: new ConsoleLogger(),
 });

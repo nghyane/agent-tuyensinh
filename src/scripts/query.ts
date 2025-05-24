@@ -1,8 +1,6 @@
-import { LibSQLVector } from "@mastra/core/vector/libsql";
+import { LibSQLVector } from "@mastra/libsql";
 import { embed } from "ai";
-import { openai } from "@ai-sdk/openai";
-
-
+import { google } from "@ai-sdk/google";
 
 const store = new LibSQLVector({
   connectionUrl: "file:./data/mastra.db",
@@ -10,8 +8,9 @@ const store = new LibSQLVector({
 
 const query = "Campus"
 
+// Use Google text-embedding-004 (768 dimensions)
 const embeddings = await embed({
-  model: openai.embedding("text-embedding-3-small"),
+  model: google.textEmbeddingModel("text-embedding-004"),
   value: query,
 });
 
