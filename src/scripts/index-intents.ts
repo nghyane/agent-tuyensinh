@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
-import { google } from "@ai-sdk/google";
-import { embedMany } from "ai";
-import { LibSQLVector } from "@mastra/libsql";
-import fs from "fs/promises";
-import path from "path";
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { google } from '@ai-sdk/google';
+import { LibSQLVector } from '@mastra/libsql';
+import { embedMany } from 'ai';
 
 interface IntentExample {
   id: string;
@@ -41,20 +41,20 @@ async function indexIntentExamples() {
   try {
     // Initialize vector database
     const vectorDB = new LibSQLVector({
-      connectionUrl: "file:./data/mastra.db",
+      connectionUrl: 'file:./data/mastra.db',
     });
 
     // Create/recreate index
     try {
-      await vectorDB.deleteIndex({ indexName: "intent_examples" });
+      await vectorDB.deleteIndex({ indexName: 'intent_examples' });
     } catch {
       // Index doesn't exist, continue
     }
-    
+
     await vectorDB.createIndex({
-      indexName: "intent_examples",
+      indexName: 'intent_examples',
       dimension: 768,
-      metric: "cosine"
+      metric: 'cosine',
     });
 
     // Load and prepare data
@@ -74,13 +74,15 @@ async function indexIntentExamples() {
             intentId: intent.id,
             category: intent.category,
             routing: intent.routing,
-            tools: intent.tools
-          }
+            tools: intent.tools,
+          },
         });
       }
     }
 
-    console.log(`📄 Processing ${documents.length} examples from ${intentExamples.length} categories`);
+    console.log(
+      `📄 Processing ${documents.length} examples from ${intentExamples.length} categories`
+    );
 
     // Create embeddings in batches
     const BATCH_SIZE = 100;
@@ -91,7 +93,7 @@ async function indexIntentExamples() {
       const chunk = documentChunks[i];
       const embeddingResult = await embedMany({
         model: google.textEmbeddingModel('text-embedding-004'),
-        values: chunk.map(doc => doc.content),
+        values: chunk.map((doc) => doc.content),
       });
       allEmbeddings.push(...embeddingResult.embeddings);
       console.log(`⚡ Batch ${i + 1}/${documentChunks.length} completed`);
@@ -99,17 +101,17 @@ async function indexIntentExamples() {
 
     // Bulk upsert all vectors
     await vectorDB.upsert({
-      indexName: "intent_examples",
+      indexName: 'intent_examples',
       vectors: allEmbeddings,
-      metadata: documents.map(doc => doc.metadata),
-      ids: documents.map(doc => doc.id)
+      metadata: documents.map((doc) => doc.metadata),
+      ids: documents.map((doc) => doc.id),
     });
 
     // Verify indexing
     const testResult = await vectorDB.query({
-      indexName: "intent_examples", 
+      indexName: 'intent_examples',
       queryVector: allEmbeddings[0],
-      topK: 1
+      topK: 1,
     });
 
     const endTime = Date.now();
@@ -118,7 +120,6 @@ async function indexIntentExamples() {
     console.log('✅ Intent indexing completed successfully!');
     console.log(`📊 ${allEmbeddings.length} examples indexed in ${duration.toFixed(2)}s`);
     console.log(`🔍 Verification: ${testResult.length > 0 ? 'PASSED' : 'FAILED'}`);
-
   } catch (error) {
     console.error('💥 Intent indexing failed:', error);
     process.exit(1);
@@ -133,4 +134,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error('💥 Script failed:', error);
       process.exit(1);
     });
-} 
+}

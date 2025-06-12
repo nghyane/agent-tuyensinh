@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { mastra } from "../../src/mastra/index.js";
+import { mastra } from '../../src/mastra/index.js';
 
 interface WorkflowTestCase {
   description: string;
@@ -15,29 +15,29 @@ async function runAgentWorkflowTests() {
 
   const testCases: WorkflowTestCase[] = [
     {
-      description: "Campus information workflow",
-      query: "Cơ sở Hà Nội có những tiện ích gì?",
-      expectedWorkflow: "intent_detection → knowledge_search → response",
-      shouldContain: ["cơ sở", "Hà Nội", "tiện ích"]
+      description: 'Campus information workflow',
+      query: 'Cơ sở Hà Nội có những tiện ích gì?',
+      expectedWorkflow: 'intent_detection → knowledge_search → response',
+      shouldContain: ['cơ sở', 'Hà Nội', 'tiện ích'],
     },
     {
-      description: "Tuition inquiry workflow", 
-      query: "Học phí ngành CNTT năm 2024 bao nhiêu?",
-      expectedWorkflow: "intent_detection → knowledge_search → response",
-      shouldContain: ["học phí", "CNTT", "2024"]
+      description: 'Tuition inquiry workflow',
+      query: 'Học phí ngành CNTT năm 2024 bao nhiêu?',
+      expectedWorkflow: 'intent_detection → knowledge_search → response',
+      shouldContain: ['học phí', 'CNTT', '2024'],
     },
     {
-      description: "Program search workflow",
-      query: "Trường có những ngành nào?",
-      expectedWorkflow: "intent_detection → knowledge_search → response", 
-      shouldContain: ["ngành", "chương trình"]
+      description: 'Program search workflow',
+      query: 'Trường có những ngành nào?',
+      expectedWorkflow: 'intent_detection → knowledge_search → response',
+      shouldContain: ['ngành', 'chương trình'],
     },
     {
-      description: "General admission workflow",
-      query: "Quy trình xét tuyển như thế nào?",
-      expectedWorkflow: "intent_detection → knowledge_search → response",
-      shouldContain: ["quy trình", "xét tuyển"]
-    }
+      description: 'General admission workflow',
+      query: 'Quy trình xét tuyển như thế nào?',
+      expectedWorkflow: 'intent_detection → knowledge_search → response',
+      shouldContain: ['quy trình', 'xét tuyển'],
+    },
   ];
 
   let passed = 0;
@@ -48,13 +48,11 @@ async function runAgentWorkflowTests() {
       console.log(`\n🎯 Test: ${testCase.description}`);
       console.log(`   Query: "${testCase.query}"`);
       console.log(`   Expected workflow: ${testCase.expectedWorkflow}`);
-      
+
       const startTime = Date.now();
-      
-      const agent = mastra.getAgent("admissionsAgent");
-      const response = await agent.generate([
-        { role: 'user', content: testCase.query }
-      ]);
+
+      const agent = mastra.getAgent('admissionsAgent');
+      const response = await agent.generate([{ role: 'user', content: testCase.query }]);
 
       const endTime = Date.now();
       const responseTime = endTime - startTime;
@@ -62,12 +60,12 @@ async function runAgentWorkflowTests() {
       if (response.response?.messages?.[0]) {
         const message = response.response.messages[0];
         const hasContent = message.content && typeof message.content === 'string';
-        
+
         // Check if response contains expected keywords (case-insensitive)
         let containsKeywords = true;
         if (hasContent) {
           const content = message.content.toString().toLowerCase();
-          containsKeywords = testCase.shouldContain.some(keyword => 
+          containsKeywords = testCase.shouldContain.some((keyword) =>
             content.includes(keyword.toLowerCase())
           );
         }
@@ -87,25 +85,24 @@ async function runAgentWorkflowTests() {
         }
       } else {
         console.log(`   ❌ FAIL (${responseTime}ms)`);
-        console.log(`      No response messages found`);
+        console.log('      No response messages found');
         failed++;
       }
 
       // Add delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     } catch (error) {
       console.log(`   💥 ERROR: ${error}`);
       failed++;
     }
   }
 
-  console.log('\n' + '─'.repeat(60));
+  console.log(`\n${'─'.repeat(60)}`);
   console.log('📊 Integration Test Results:');
   console.log(`   ✅ Passed: ${passed}`);
   console.log(`   ❌ Failed: ${failed}`);
   console.log(`   📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`);
-  
+
   if (failed === 0) {
     console.log('\n🎉 All integration tests passed!');
     console.log('✨ Agent workflow is functioning correctly');
@@ -113,7 +110,7 @@ async function runAgentWorkflowTests() {
     console.log('\n⚠️  Some integration tests failed.');
     console.log('🔧 Check agent configuration and tool integrations.');
   }
-  
+
   return failed === 0;
 }
 
@@ -127,4 +124,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
 }
 
-export { runAgentWorkflowTests }; 
+export { runAgentWorkflowTests };

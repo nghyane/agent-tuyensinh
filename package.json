@@ -16,7 +16,13 @@
     "ingest": "pnpx tsx src/scripts/ingest.ts",
     "index": "pnpx tsx src/scripts/indexing.ts",
     "index-intents": "pnpx tsx src/scripts/index-intents.ts",
-    "query": "pnpx tsx src/scripts/query.ts"
+    "query": "pnpx tsx src/scripts/query.ts",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
   },
   "keywords": [],
   "author": "",
@@ -35,17 +41,13 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@types/node": "^22.15.21",
     "mastra": "^0.10.0",
     "typescript": "^5.8.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "onnxruntime-node"
-    ],
-    "ignoredBuiltDependencies": [
-      "protobufjs"
-    ]
+    "onlyBuiltDependencies": ["esbuild", "onnxruntime-node"],
+    "ignoredBuiltDependencies": ["protobufjs"]
   }
 }

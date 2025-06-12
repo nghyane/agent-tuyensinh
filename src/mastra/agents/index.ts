@@ -1,8 +1,8 @@
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
-import { Agent } from "@mastra/core/agent";
-import { vectorQueryTool } from "@/mastra/tools/vector-query";
-import { smartSearchTool } from "@/mastra/tools/smart-search";
+import { smartSearchTool } from '@/mastra/tools/smart-search';
+import { vectorQueryTool } from '@/mastra/tools/vector-query';
+import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
+import { Agent } from '@mastra/core/agent';
 
 // import { intentDetectionService } from "@/services/intent-detection";
 // import { applicationFormTool } from "@mastra/tools/application-form";
@@ -13,11 +13,11 @@ import { smartSearchTool } from "@/mastra/tools/smart-search";
  * Agent hỗ trợ tư vấn tuyển sinh với khả năng phát hiện intent thông minh được tối ưu.
  * Sử dụng hybrid intent detection (rule-based + vector) để định tuyến câu hỏi đến tools phù hợp.
  * Hỗ trợ câu hỏi tiếng Việt, tiếng Anh và mixed-language với độ chính xác cao.
- * 
+ *
  * Note: Đã tích hợp optimized intent detection với confidence scoring và quality assessment.
  */
 export const admissionsAgent = new Agent({
-  name: "Intelligent Admissions Assistant - Optimized",
+  name: 'Intelligent Admissions Assistant - Optimized',
   instructions: `You are a professional university admissions assistant with optimized intelligent intent detection capabilities.
 
 ENHANCED WORKFLOW WITH OPTIMIZED SMART TOOLS:
@@ -77,17 +77,17 @@ ADVANCED FEATURES:
   • Combine document metadata with intent-based filtering
 
 Remember: Your enhanced goal is to provide the most accurate information by leveraging optimized intent detection with confidence scoring, quality assessment, and intelligent fallback strategies.`,
-  model: openai("gpt-4o"),
-  tools: { 
+  model: openai('gpt-4o'),
+  tools: {
     searchKnowledgeBase: vectorQueryTool,
-    smartSearch: smartSearchTool
+    smartSearch: smartSearchTool,
     // Additional tools will be added here as they're implemented
     // getCampusInfo: campusInfoTool,
     // calculateTuition: tuitionCalculatorTool,
     // searchPrograms: programSearchTool,
     // checkDeadlines: deadlineTool,
     // submitApplicationInquiry: applicationFormTool
-  }
+  },
 });
 
 /**
@@ -95,7 +95,7 @@ Remember: Your enhanced goal is to provide the most accurate information by leve
  * Now includes intent classification to improve search and routing.
  */
 export const metadataAgent = new Agent({
-  name: "Enhanced Metadata Agent",
+  name: 'Enhanced Metadata Agent',
   instructions: `You are an AI that analyzes Vietnamese university admission documents in Markdown format.
 
 OBJECTIVE:
@@ -138,5 +138,5 @@ RULES:
   • Extract only explicitly mentioned information
   • List up to 3 most relevant intents for the document
   • Focus on content that students would search for`,
-  model: google("gemini-2.5-flash-preview-04-17"),
+  model: google('gemini-2.5-flash-preview-04-17'),
 });

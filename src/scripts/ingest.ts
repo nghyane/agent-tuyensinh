@@ -1,18 +1,26 @@
-import { MDocument } from "@mastra/rag";
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import { readdir, writeFile } from "fs/promises";
-import { createWriteStream } from "fs";
-import { extname } from "path";
-import { mastra } from "@/mastra/index";
+import { execFile } from 'node:child_process';
+import { createWriteStream } from 'node:fs';
+import { readdir, writeFile } from 'node:fs/promises';
+import { extname } from 'node:path';
+import { promisify } from 'node:util';
+import { mastra } from '@/mastra/index';
+import { MDocument } from '@mastra/rag';
 
 const execFileAsync = promisify(execFile);
 
 const SUPPORTED_EXTENSIONS = [
-   ".docx", ".pptx", ".xlsx",
-   ".odt", ".odp", ".ods", ".pdf",
-   ".html", ".htm", ".epub", ".md"
- ];
+  '.docx',
+  '.pptx',
+  '.xlsx',
+  '.odt',
+  '.odp',
+  '.ods',
+  '.pdf',
+  '.html',
+  '.htm',
+  '.epub',
+  '.md',
+];
 
 /**
  * Parse document using Pandoc to convert to Markdown format
@@ -25,16 +33,17 @@ async function parseWithPandoc(filePath: string): Promise<string> {
     const ext = extname(filePath).toLowerCase();
     const pandocArgs = [
       filePath,
-      '-t', 'markdown',
-      '--wrap=none',  // No automatic line wrapping
-      '--extract-media=./data/media' // Extract embedded images
+      '-t',
+      'markdown',
+      '--wrap=none', // No automatic line wrapping
+      '--extract-media=./data/media', // Extract embedded images
     ];
-    
+
     // Add specific options for PDF files
     if (ext === '.pdf') {
       pandocArgs.push('--pdf-engine=xelatex');
     }
-    
+
     const { stdout } = await execFileAsync('pandoc', pandocArgs);
     return stdout;
   } catch (error: unknown) {
@@ -46,12 +55,12 @@ async function parseWithPandoc(filePath: string): Promise<string> {
 
 function parseGeminiPartsJson<T = any>(parts: any): T | null {
   if (!Array.isArray(parts)) {
-    console.error("Invalid metadata parts: not an array", parts);
+    console.error('Invalid metadata parts: not an array', parts);
     return null;
   }
   const textPart = parts.find((p: any) => p && typeof p === 'object' && p.type === 'text');
   if (!textPart || typeof textPart.text !== 'string') {
-    console.error("No valid text part found in metadata parts:", parts);
+    console.error('No valid text part found in metadata parts:', parts);
     return null;
   }
 
@@ -62,14 +71,14 @@ function parseGeminiPartsJson<T = any>(parts: any): T | null {
     .trim();
 
   if (!cleaned) {
-    console.error("Cleaned text part is empty after removing markdown fences.");
+    console.error('Cleaned text part is empty after removing markdown fences.');
     return null;
   }
 
   try {
     return JSON.parse(cleaned);
   } catch (error) {
-    console.error("Failed to parse JSON from cleaned text part:", cleaned, error);
+    console.error('Failed to parse JSON from cleaned text part:', cleaned, error);
     return null;
   }
 }
@@ -77,7 +86,7 @@ function parseGeminiPartsJson<T = any>(parts: any): T | null {
 /**
  * Ingest all .docx files in the data directory, chunk and save as JSONL.
  */
-export async function ingestAllDocs(dataDir = "./data", jsonlPath = "./data/chunks.jsonl") {
+export async function ingestAllDocs(dataDir = './data', jsonlPath = './data/chunks.jsonl') {
   const files = await readdir(dataDir);
   const officeFiles = files.filter((f) => SUPPORTED_EXTENSIONS.includes(extname(f)));
 
@@ -88,17 +97,22 @@ export async function ingestAllDocs(dataDir = "./data", jsonlPath = "./data/chun
       const filePath = `${dataDir}/${file}`;
       const officeDocument = await parseWithPandoc(filePath);
 
-      const metadataAgent = mastra.getAgent("metadataAgent");
+      const metadataAgent = mastra.getAgent('metadataAgent');
       const metadata = await metadataAgent.generate(officeDocument).catch((err) => {
         console.error(`[ERROR] Failed to ingest ${file}: Could not generate metadata.`, err);
         return null;
       });
 
-      if (!metadata || !metadata.response || !Array.isArray(metadata.response.messages) || metadata.response.messages.length === 0) {
+      if (
+        !metadata ||
+        !metadata.response ||
+        !Array.isArray(metadata.response.messages) ||
+        metadata.response.messages.length === 0
+      ) {
         console.error(`[ERROR] Failed to ingest ${file}: Invalid or empty metadata response.`);
         continue;
       }
-      
+
       const parsedMetadata = parseGeminiPartsJson(metadata.response.messages[0].content);
 
       if (!parsedMetadata) {
@@ -106,19 +120,18 @@ export async function ingestAllDocs(dataDir = "./data", jsonlPath = "./data/chun
         continue;
       }
 
-
       const document = MDocument.fromMarkdown(officeDocument, {
         source: file,
-        category: "office_document",
-        ...parsedMetadata
+        category: 'office_document',
+        ...parsedMetadata,
       });
 
       const chunks = await document.chunk({
-        strategy: "markdown",
+        strategy: 'markdown',
       });
 
       for (const chunk of chunks) {
-        writer.write(JSON.stringify(chunk) + "\n");
+        writer.write(`${JSON.stringify(chunk)}\n`);
       }
 
       console.log(`[SUCCESS] Ingested: ${file} (${chunks.length} chunks)`);
