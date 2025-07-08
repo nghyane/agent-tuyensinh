@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "description": "Production intent rules for FPT University Agent",
+  "last_updated": "2025-01-08",
+  "rules": [
+    {
+      "intent_id": "tuition_inquiry",
+      "description": "Câu hỏi về học phí, chi phí học tập",
+      "weight": 1.5,
+      "keywords": [
+        "học phí", "tuition", "phí", "tiền", "cost", "chi phí", "trả góp",
+        "thanh toán", "ojt", "fee", "mắc", "đắt", "rẻ", "expensive", "cheap",
+        "giá", "price", "bao nhiêu", "how much", "miễn phí", "free",
+        "học bổng", "scholarship", "hỗ trợ", "support", "tài chính", "financial"
+      ],
+      "patterns": [
+        "học phí.*(?:bao nhiêu|đắt|rẻ|giá|cost|mắc|2024|2025)",
+        "(?:chi phí|tiền|phí).*(?:học|ngành|năm|semester|kỳ|term)",
+        "tuition.*(?:fee|của|bao nhiêu|FPT|program|IT|AI|business)",
+        "(?:giá|price).*(?:học|study|course|program)",
+        "(?:trả góp|installment).*(?:học phí|tuition)",
+        "(?:học bổng|scholarship).*(?:có|available|apply)"
+      ],
+      "negative_keywords": ["thời gian biểu", "lịch học", "schedule", "vàng", "gold", "weather", "thời tiết"],
+      "priority": "high"
+    },
+    {
+      "intent_id": "admission_requirements",
+      "description": "Yêu cầu tuyển sinh, điểm chuẩn, điều kiện đầu vào",
+      "weight": 1.4,
+      "keywords": [
+        "điểm chuẩn", "admission", "requirements", "yêu cầu", "đầu vào",
+        "tuyển sinh", "enrollment", "điều kiện", "conditions", "đăng ký",
+        "register", "apply", "application", "hồ sơ", "documents",
+        "bằng cấp", "certificate", "tốt nghiệp", "graduation", "THPT",
+        "high school", "đại học", "university", "chuyển ngành", "transfer"
+      ],
+      "patterns": [
+        "điểm chuẩn.*(?:bao nhiêu|2024|2025|năm|FPT)",
+        "(?:yêu cầu|requirements).*(?:đầu vào|admission|tuyển sinh|apply)",
+        "(?:điều kiện|conditions).*(?:học|study|program|ngành)",
+        "(?:đăng ký|register|apply).*(?:như thế nào|how|when|khi nào)",
+        "(?:hồ sơ|documents).*(?:cần|need|required|yêu cầu)",
+        "(?:chuyển ngành|transfer).*(?:có thể|can|được không)"
+      ],
+      "priority": "high"
+    },
+    {
+      "intent_id": "program_information",
+      "description": "Thông tin về các chương trình đào tạo, ngành học",
+      "weight": 1.3,
+      "keywords": [
+        "ngành", "program", "major", "chuyên ngành", "specialization",
+        "cntt", "it", "information technology", "ai", "artificial intelligence",
+        "software engineering", "phần mềm", "data science", "dữ liệu",
+        "business", "kinh doanh", "marketing", "design", "thiết kế",
+        "multimedia", "đa phương tiện", "game", "animation", "english",
+        "tiếng anh", "japanese", "nhật bản", "korean", "hàn quốc"
+      ],
+      "patterns": [
+        "ngành.*(?:nào|gì|what|which|có|available)",
+        "(?:program|major).*(?:available|có|offer|FPT)",
+        "(?:cntt|it|ai|software).*(?:program|ngành|học)",
+        "(?:business|kinh doanh).*(?:program|ngành)",
+        "(?:design|thiết kế).*(?:program|ngành)",
+        "(?:english|tiếng anh).*(?:program|ngành)",
+        "chương trình.*(?:đào tạo|training|education)"
+      ],
+      "negative_keywords": ["library", "thư viện", "campus", "facilities"],
+      "priority": "medium"
+    },
+    {
+      "intent_id": "campus_facilities",
+      "description": "Thông tin về cơ sở vật chất, tiện ích campus",
+      "weight": 1.3,
+      "keywords": [
+        "campus", "cơ sở", "thư viện", "library", "ký túc xá", "dormitory",
+        "cơ sở vật chất", "facilities", "địa chỉ", "address", "location",
+        "phòng lab", "laboratory", "wifi", "internet", "canteen", "căn tin",
+        "parking", "bãi đỗ xe", "gym", "thể thao", "sports", "clinic",
+        "y tế", "medical", "atm", "ngân hàng", "bank", "university campus",
+        "available", "ở đâu", "where", "có gì", "what", "about campus",
+        "campus life", "như thế nào", "how"
+      ],
+      "patterns": [
+        "(?:campus|cơ sở).*(?:ở đâu|where|địa chỉ|location)",
+        "thư viện.*(?:mở cửa|giờ|hours|time|sách|book)",
+        "ký túc xá.*(?:giá|price|cost|bao nhiêu|điều kiện|như thế nào)",
+        "(?:phòng lab|laboratory).*(?:có|available|equipment)",
+        "(?:wifi|internet).*(?:có|available|password|free)",
+        "(?:căn tin|canteen).*(?:giờ|hours|đồ ăn|food)",
+        "(?:gym|thể thao).*(?:có|available|giờ|hours)",
+        "(?:about|tell me about).*(?:campus|university campus)",
+        "(?:library|thư viện).*(?:facilities|available)"
+      ],
+      "priority": "medium"
+    },
+    {
+      "intent_id": "schedule_academic",
+      "description": "Lịch học, thời khóa biểu, lịch thi",
+      "weight": 1.1,
+      "keywords": [
+        "lịch học", "schedule", "thời khóa biểu", "timetable", "lịch thi",
+        "exam schedule", "kỳ thi", "examination", "học kỳ", "semester",
+        "kỳ", "term", "nghỉ lễ", "holiday", "vacation", "break",
+        "đăng ký môn", "course registration", "môn học", "subject",
+        "credit", "tín chỉ", "GPA", "điểm", "grade",
+        "academic calendar", "calendar", "academic year", "năm học"
+      ],
+      "patterns": [
+        "lịch học.*(?:khi nào|when|thế nào|how)",
+        "(?:thời khóa biểu|schedule).*(?:xem|check|where)",
+        "lịch thi.*(?:khi nào|when|ở đâu|where)",
+        "(?:học kỳ|semester).*(?:bắt đầu|start|kết thúc|end)",
+        "(?:đăng ký|register).*(?:môn|course|subject)",
+        "(?:nghỉ lễ|holiday).*(?:khi nào|when|bao lâu|how long)",
+        "(?:academic|học tập).*(?:calendar|lịch)",
+        "(?:calendar|lịch).*(?:2024|2025|academic|học tập)"
+      ],
+      "priority": "medium"
+    },
+    {
+      "intent_id": "student_services",
+      "description": "Dịch vụ sinh viên, hỗ trợ học tập",
+      "weight": 1.0,
+      "keywords": [
+        "dịch vụ", "service", "hỗ trợ", "support", "tư vấn", "counseling",
+        "sinh viên", "student", "thẻ sinh viên", "student card",
+        "bảo hiểm", "insurance", "y tế", "medical", "tâm lý", "psychology",
+        "việc làm", "job", "career", "thực tập", "internship", "ojt",
+        "club", "câu lạc bộ", "hoạt động", "activity", "event", "sự kiện"
+      ],
+      "patterns": [
+        "(?:dịch vụ|service).*(?:sinh viên|student)",
+        "(?:hỗ trợ|support).*(?:học tập|study|academic)",
+        "(?:tư vấn|counseling).*(?:có|available|where)",
+        "(?:thẻ sinh viên|student card).*(?:làm|make|renew)",
+        "(?:bảo hiểm|insurance).*(?:y tế|medical|health)",
+        "(?:việc làm|job|career).*(?:hỗ trợ|support|center)",
+        "(?:thực tập|internship|ojt).*(?:tìm|find|apply)"
+      ],
+      "priority": "low"
+    },
+    {
+      "intent_id": "contact_information",
+      "description": "Thông tin liên hệ, số điện thoại, email",
+      "weight": 1.4,
+      "keywords": [
+        "liên hệ", "contact", "số điện thoại", "phone", "email", "mail",
+        "hotline", "địa chỉ", "address", "website", "facebook", "zalo",
+        "fanpage", "social media", "phòng", "office", "văn phòng",
+        "giờ làm việc", "working hours", "reception", "lễ tân",
+        "contact university", "how to contact", "get in touch", "reach out"
+      ],
+      "patterns": [
+        "(?:liên hệ|contact).*(?:như thế nào|how|where|ở đâu)",
+        "(?:số điện thoại|phone|hotline).*(?:bao nhiêu|what|number)",
+        "(?:email|mail).*(?:gì|what|address)",
+        "(?:địa chỉ|address).*(?:ở đâu|where|what)",
+        "(?:website|facebook|zalo).*(?:gì|what|link)",
+        "(?:giờ làm việc|working hours).*(?:khi nào|when|what time)",
+        "(?:how|làm sao).*(?:contact|liên hệ).*(?:university|trường)",
+        "(?:can i|có thể).*(?:contact|liên hệ)"
+      ],
+      "priority": "low"
+    },
+    {
+      "intent_id": "general_information",
+      "description": "Thông tin chung về FPT University",
+      "weight": 1.1,
+      "keywords": [
+        "fpt", "university", "đại học", "trường", "school", "giới thiệu",
+        "introduction", "about", "lịch sử", "history", "thành lập", "founded",
+        "ranking", "xếp hạng", "chất lượng", "quality", "accreditation",
+        "kiểm định", "vision", "tầm nhìn", "mission", "sứ mệnh",
+        "university overview", "about university", "university information",
+        "what can you help", "help me with", "overview"
+      ],
+      "patterns": [
+        "(?:fpt|trường).*(?:là gì|what|about|giới thiệu)",
+        "(?:lịch sử|history).*(?:fpt|trường|university)",
+        "(?:ranking|xếp hạng).*(?:fpt|university)",
+        "(?:chất lượng|quality).*(?:đào tạo|education|training)",
+        "(?:tầm nhìn|vision|sứ mệnh|mission).*(?:fpt|university)",
+        "(?:about|giới thiệu).*(?:university|trường)",
+        "(?:what can you|bạn có thể).*(?:help|giúp)",
+        "(?:university|trường).*(?:overview|information|thông tin)"
+      ],
+      "priority": "low"
+    },
+    {
+      "intent_id": "technical_support",
+      "description": "Hỗ trợ kỹ thuật, IT, hệ thống",
+      "weight": 0.7,
+      "keywords": [
+        "hỗ trợ kỹ thuật", "technical support", "it support", "hệ thống",
+        "system", "portal", "fap", "academic portal", "wifi", "internet",
+        "email", "account", "tài khoản", "password", "mật khẩu",
+        "login", "đăng nhập", "lỗi", "error", "bug", "problem", "vấn đề",
+        "help", "assistance", "student portal", "không kết nối", "can't connect",
+        "không hoạt động", "not working", "bị lỗi", "broken"
+      ],
+      "patterns": [
+        "(?:hỗ trợ kỹ thuật|technical support|it support).*(?:ở đâu|where|contact)",
+        "(?:portal|fap).*(?:lỗi|error|không vào được|can't access)",
+        "(?:wifi|internet).*(?:không kết nối|can't connect|password)",
+        "(?:email|account|tài khoản).*(?:lỗi|error|quên|forgot)",
+        "(?:password|mật khẩu).*(?:quên|forgot|reset|đổi|change)",
+        "(?:đăng nhập|login).*(?:không được|can't|lỗi|error)",
+        "(?:help|assistance).*(?:student portal|portal)",
+        "(?:need help|cần giúp).*(?:with|với)"
+      ],
+      "priority": "medium"
+    },
+    {
+      "intent_id": "graduation_career",
+      "description": "Tốt nghiệp, việc làm, cơ hội nghề nghiệp",
+      "weight": 1.0,
+      "keywords": [
+        "tốt nghiệp", "graduation", "bằng cấp", "degree", "certificate",
+        "việc làm", "job", "career", "nghề nghiệp", "employment",
+        "cơ hội", "opportunity", "mức lương", "salary", "thu nhập", "income",
+        "công ty", "company", "doanh nghiệp", "enterprise", "partner",
+        "đối tác", "alumni", "cựu sinh viên", "network", "mạng lưới"
+      ],
+      "patterns": [
+        "(?:tốt nghiệp).*(?:điều kiện|requirements|khi nào|when)",
+        "(?:việc làm|job|career).*(?:sau khi|after|tốt nghiệp|graduation)",
+        "(?:mức lương|salary).*(?:bao nhiêu|how much|average|trung bình)",
+        "(?:cơ hội|opportunity).*(?:việc làm|job|career)",
+        "(?:công ty|company).*(?:liên kết|partner|hợp tác|cooperation)",
+        "(?:alumni|cựu sinh viên).*(?:network|mạng lưới|kết nối)"
+      ],
+      "priority": "medium"
+    }
+  ],
+  "fallback_rules": [
+    {
+      "intent_id": "out_of_scope",
+      "description": "Câu hỏi ngoài phạm vi FPT University",
+      "keywords": [
+        "thời tiết", "weather", "nấu ăn", "cooking", "phim", "movie",
+        "âm nhạc", "music", "thể thao", "sports", "chính trị", "politics",
+        "tin tức", "news", "mua sắm", "shopping", "du lịch", "travel"
+      ],
+      "confidence": 0.1
+    }
+  ],
+  "metadata": {
+    "total_rules": 10,
+    "coverage_areas": [
+      "Academic Information",
+      "Admission & Enrollment", 
+      "Campus Life",
+      "Student Services",
+      "Technical Support",
+      "Career Services"
+    ],
+    "languages": ["vietnamese", "english"],
+    "confidence_thresholds": {
+      "high": 0.8,
+      "medium": 0.6,
+      "low": 0.4
+    }
+  }
+}
