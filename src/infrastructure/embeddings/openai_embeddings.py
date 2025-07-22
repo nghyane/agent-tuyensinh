@@ -13,17 +13,25 @@ from openai import OpenAI
 class OpenAIEmbeddingService:
     """
     OpenAI embedding service for generating text embeddings
+    
+    Supports dynamic configuration through **client_kwargs for future customization.
+    Examples:
+        - timeout: 30.0
+        - max_retries: 3
+        - default_headers: {"User-Agent": "custom-agent"}
     """
     
     def __init__(
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        model: str = "text-embedding-3-small"
+        model: str = "text-embedding-3-small",
+        **client_kwargs
     ):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
         self.model = model
+        self.client_kwargs = client_kwargs
         
         if not self.api_key:
             print("⚠️ OpenAI API key not found")
@@ -31,13 +39,16 @@ class OpenAIEmbeddingService:
             return
         
         try:
-            # Initialize OpenAI client
-            client_kwargs = {"api_key": self.api_key}
+            # Initialize OpenAI client with dynamic configuration
+            client_config = {
+                "api_key": self.api_key,
+                **self.client_kwargs
+            }
             
             if self.base_url:
-                client_kwargs["base_url"] = self.base_url
+                client_config["base_url"] = self.base_url
 
-            self.client = OpenAI(**client_kwargs)
+            self.client = OpenAI(**client_config)
 
             # Skip connection test during initialization for better reliability
             # Test will happen on first actual usage
@@ -139,5 +150,6 @@ class OpenAIEmbeddingService:
             "model": self.model,
             "dimension": self.get_embedding_dimension(),
             "available": self.available,
-            "base_url": self.base_url
+            "base_url": self.base_url,
+            "client_config": self.client_kwargs
         }

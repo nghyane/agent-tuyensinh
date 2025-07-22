@@ -101,7 +101,10 @@ class TemplateManager:
             default_data = section_data.get("default", {})
             suggestions = self._get_language_data(default_data, language)
         
-        return suggestions or []
+        # Ensure suggestions is a list
+        if isinstance(suggestions, list):
+            return suggestions
+        return []
 
     def get_error_template(self, error_type: str, language: str = "vi") -> Dict[str, str]:
         """Get error template data"""

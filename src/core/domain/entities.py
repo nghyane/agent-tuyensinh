@@ -5,7 +5,7 @@ Core domain entities for intent detection system
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Pattern
+from typing import List, Optional, Pattern
 
 from shared.types import (
     QueryText, IntentId, Confidence, Score, Metadata,
@@ -22,7 +22,7 @@ class IntentResult:
     category: Optional[IntentCategory] = None
     metadata: Metadata = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    
+
     @property
     def confidence_level(self) -> ConfidenceLevel:
         """Get confidence level category"""
@@ -36,11 +36,11 @@ class IntentResult:
             return ConfidenceLevel.LOW
         else:
             return ConfidenceLevel.VERY_LOW
-    
+
     def is_high_confidence(self) -> bool:
         """Check if result has high confidence (>= 0.7)"""
         return self.confidence >= 0.7
-    
+
     def with_metadata(self, **kwargs) -> 'IntentResult':
         """Create new result with additional metadata"""
         new_metadata = {**self.metadata, **kwargs}
@@ -77,9 +77,9 @@ class IntentRule:
     priority: str = "medium"
     enabled: bool = True
     metadata: Metadata = field(default_factory=dict)
-    
+
     _compiled_patterns: Optional[List[Pattern]] = field(default=None, init=False, repr=False)
-    
+
     def __post_init__(self):
         """Validate rule after initialization"""
         if not self.intent_id:
@@ -89,7 +89,7 @@ class IntentRule:
         if not (0.1 <= self.weight <= 2.0):
             raise ValueError("Weight must be between 0.1 and 2.0")
         self._compile_patterns()
-    
+
     def _compile_patterns(self) -> None:
         """Compile regex patterns for better performance"""
         compiled = []
@@ -99,14 +99,14 @@ class IntentRule:
             except re.error as e:
                 raise ValueError(f"Invalid regex pattern '{pattern}': {e}")
         object.__setattr__(self, '_compiled_patterns', compiled)
-    
+
     @property
     def compiled_patterns(self) -> List[Pattern]:
         """Get compiled regex patterns"""
         if self._compiled_patterns is None:
             self._compile_patterns()
         return self._compiled_patterns or []
-    
+
     @property
     def priority_weight(self) -> float:
         """Get priority weight multiplier"""

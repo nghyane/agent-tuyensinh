@@ -26,30 +26,31 @@ def get_fpt_agent(
 ) -> Agent:
     """
     Create and configure FPT University Agent with Agno features
-    
+
     Args:
         model_id: OpenAI model ID to use
         user_id: User ID for context
         session_id: Session ID for context
         intent_service: Intent detection service
         debug_mode: Enable debug mode
-        
+
     Returns:
         Configured FPT University Agent
     """
-    
+
     # Create intent detection tool if service is provided
-    tools = [ReasoningTools(add_instructions=True)]
+    # According to Agno docs: tools: Optional[List[Union[Toolkit, Callable, Function, Dict]]] = None
+    tools = []
+    tools.append(ReasoningTools(add_instructions=True))
     if intent_service:
-        intent_tool = create_intent_detection_tool(intent_service)
-        tools.append(intent_tool)
-    
+        tools.append(create_intent_detection_tool(intent_service))
+
     # Storage for agent sessions
     storage = SqliteStorage(
         table_name="fpt_agent_sessions",
         db_file="tmp/fpt_agent.db"
     )
-    
+
     # Memory for long-term user memory
     memory = Memory(
         db=SqliteMemoryDb(
@@ -59,7 +60,7 @@ def get_fpt_agent(
         delete_memories=True,
         clear_memories=True,
     )
-    
+
     return Agent(
         name="FPT University Agent",
         user_id=user_id,
@@ -78,21 +79,21 @@ def get_fpt_agent(
         enable_agentic_memory=True,
         # Description of the agent
         description=dedent("""
-        You are FPT University Agent, an AI assistant designed to help students, staff, and visitors 
-        with information about FPT University. You have access to intent detection capabilities and 
+        You are FPT University Agent, an AI assistant designed to help students, staff, and visitors
+        with information about FPT University. You have access to intent detection capabilities and
         reasoning tools to provide thoughtful, accurate responses.
         """),
         # Instructions for the agent
         instructions=dedent("""
-        As FPT University Agent, your goal is to provide helpful, accurate, and professional assistance 
+        As FPT University Agent, your goal is to provide helpful, accurate, and professional assistance
         to students, staff, and visitors of FPT University.
-        
+
         Your capabilities include:
         - Intent detection to understand user queries and their purpose
         - Reasoning to provide thoughtful, well-structured responses
         - Access to FPT University knowledge base and information
         - Long-term memory to remember user preferences and past interactions
-        
+
         Guidelines for your responses:
         1. **Understand the Query**: Use intent detection to understand what the user is asking for
         2. **Provide Accurate Information**: Give precise, up-to-date information about FPT University
@@ -101,7 +102,7 @@ def get_fpt_agent(
         5. **Be Concise**: Provide clear, direct answers while being comprehensive
         6. **Cite Sources**: When possible, reference official FPT University sources
         7. **Remember Users**: Use your memory to personalize responses based on past interactions
-        
+
         Common topics you can help with:
         - Academic programs and courses
         - Admission requirements and procedures
@@ -111,8 +112,8 @@ def get_fpt_agent(
         - Research and innovation
         - International partnerships
         - Events and news
-        
-        Always be truthful about what you know and don't know. If you're unsure about specific details, 
+
+        Always be truthful about what you know and don't know. If you're unsure about specific details,
         suggest contacting the relevant department or checking the official FPT University website.
         """),
         # Add state in messages for dynamic content
@@ -129,4 +130,4 @@ def get_fpt_agent(
         show_tool_calls=True,
         # Show debug logs
         debug_mode=debug_mode,
-    ) 
+    )
