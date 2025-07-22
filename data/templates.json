@@ -1,0 +1,204 @@
+{
+  "intent_detection": {
+    "result_template": {
+      "vi": {
+        "header": "🎯 KẾT QUẢ PHÁT HIỆN Ý ĐỊNH",
+        "separator": "=========================",
+        "query_label": "📝 Câu hỏi",
+        "intent_label": "Intent",
+        "confidence_label": "📊 Độ tin cậy",
+        "method_label": "Phương pháp",
+        "timestamp_label": "🕐 Thời gian",
+        "metadata_header": "📊 THÔNG TIN CHI TIẾT:",
+        "action_suggestions_header": "💡 GỢI Ý HÀNH ĐỘNG:",
+        "next_steps_header": "📋 BƯỚC TIẾP THEO:",
+        "next_steps_items": [
+          "Sử dụng intent này để chọn tool phù hợp",
+          "Nếu confidence thấp (<0.5), hãy hỏi thêm để làm rõ",
+          "Nếu intent không chính xác, hãy xử lý theo cách tổng quát"
+        ]
+      },
+      "en": {
+        "header": "🎯 INTENT DETECTION RESULT",
+        "separator": "=========================",
+        "query_label": "📝 Query",
+        "intent_label": "Intent",
+        "confidence_label": "📊 Confidence",
+        "method_label": "Method",
+        "timestamp_label": "🕐 Timestamp",
+        "metadata_header": "📊 METADATA:",
+        "action_suggestions_header": "💡 ACTION SUGGESTIONS:",
+        "next_steps_header": "📋 NEXT STEPS:",
+        "next_steps_items": [
+          "Use this intent to select appropriate tool",
+          "If confidence is low (<0.5), ask for clarification",
+          "If intent is not accurate, handle generically"
+        ]
+      }
+    },
+    "error_templates": {
+      "timeout": {
+        "vi": {
+          "header": "⏰ Timeout khi phát hiện intent cho query",
+          "fallback_intent": "unknown",
+          "fallback_confidence": "0.1",
+          "fallback_method": "timeout_fallback",
+          "suggestion": "Hãy trả lời theo cách tổng quát và hỏi thêm thông tin."
+        },
+        "en": {
+          "header": "⏰ Timeout when detecting intent for query",
+          "fallback_intent": "unknown", 
+          "fallback_confidence": "0.1",
+          "fallback_method": "timeout_fallback",
+          "suggestion": "Please respond generically and ask for more information."
+        }
+      },
+      "general": {
+                "vi": {
+          "header": "❌ Lỗi khi phát hiện intent",
+          "fallback_intent": "unknown",
+          "fallback_confidence": "0.1", 
+          "fallback_method": "error_fallback",
+          "suggestion": "Hãy trả lời theo cách tổng quát và hỏi thêm thông tin để làm rõ ý định của user."
+        },
+        "en": {
+          "header": "❌ Error when detecting intent",
+          "fallback_intent": "unknown",
+          "fallback_confidence": "0.1", 
+          "fallback_method": "error_fallback", 
+          "suggestion": "Please respond generically and ask for more information to clarify user intent."
+        }
+      }
+    },
+    "action_suggestions": {
+      "tuition_inquiry": {
+        "vi": [
+          "Sử dụng tuition_info tool để lấy thông tin học phí",
+          "Hỏi về chương trình học cụ thể nếu chưa rõ",
+          "Cung cấp thông tin về các hình thức thanh toán",
+          "Đề xuất các chương trình học bổng nếu phù hợp"
+        ],
+        "en": [
+          "Use tuition_info tool to get tuition information",
+          "Ask about specific program if not clear",
+          "Provide information about payment methods",
+          "Suggest scholarship programs if applicable"
+        ]
+      },
+      "admission_inquiry": {
+        "vi": [
+          "Sử dụng admission_info tool để lấy thông tin tuyển sinh",
+          "Hỏi về năm học và chương trình quan tâm",
+          "Cung cấp thông tin về điểm chuẩn và yêu cầu",
+          "Hướng dẫn quy trình đăng ký"
+        ],
+        "en": [
+          "Use admission_info tool to get admission information",
+          "Ask about academic year and program of interest",
+          "Provide information about benchmarks and requirements",
+          "Guide through registration process"
+        ]
+      },
+      "campus_info": {
+        "vi": [
+          "Sử dụng campus_info tool để lấy thông tin campus",
+          "Cung cấp địa chỉ, liên hệ, cơ sở vật chất",
+          "Hướng dẫn đường đi và phương tiện di chuyển",
+          "Thông tin về hoạt động sinh viên"
+        ],
+        "en": [
+          "Use campus_info tool to get campus information",
+          "Provide address, contact, facilities",
+          "Guide directions and transportation",
+          "Information about student activities"
+        ]
+      },
+      "technical_support": {
+        "vi": [
+          "Sử dụng technical_support tool để hỗ trợ kỹ thuật",
+          "Hỏi chi tiết về vấn đề gặp phải",
+          "Cung cấp hướng dẫn step-by-step",
+          "Escalate lên IT support nếu cần"
+        ],
+        "en": [
+          "Use technical_support tool for technical assistance",
+          "Ask for details about the issue encountered",
+          "Provide step-by-step guidance",
+          "Escalate to IT support if needed"
+        ]
+      },
+      "schedule_inquiry": {
+        "vi": [
+          "Sử dụng schedule_info tool để lấy thông tin lịch học",
+          "Hỏi về học kỳ, chương trình học cụ thể",
+          "Cung cấp thông tin về lịch thi, lịch nghỉ",
+          "Hướng dẫn cách xem lịch trên portal"
+        ],
+        "en": [
+          "Use schedule_info tool to get schedule information",
+          "Ask about semester, specific program",
+          "Provide information about exam schedule, holidays",
+          "Guide how to view schedule on portal"
+        ]
+      },
+      "portal_support": {
+        "vi": [
+          "Sử dụng portal_support tool để hỗ trợ portal/FAP",
+          "Hỏi về loại lỗi gặp phải",
+          "Cung cấp hướng dẫn troubleshooting",
+          "Thông tin liên hệ IT support"
+        ],
+        "en": [
+          "Use portal_support tool for portal/FAP support",
+          "Ask about type of error encountered",
+          "Provide troubleshooting guidance",
+          "IT support contact information"
+        ]
+      },
+      "general_info": {
+        "vi": [
+          "Cung cấp thông tin tổng quát về FPT University",
+          "Hỏi thêm để làm rõ ý định cụ thể",
+          "Đề xuất các chủ đề có thể quan tâm",
+          "Hướng dẫn cách tìm thông tin chi tiết"
+        ],
+        "en": [
+          "Provide general information about FPT University",
+          "Ask more to clarify specific intent",
+          "Suggest topics that might be of interest",
+          "Guide how to find detailed information"
+        ]
+      },
+      "default": {
+        "vi": [
+          "Xử lý theo cách tổng quát",
+          "Hỏi thêm thông tin để làm rõ ý định",
+          "Cung cấp các lựa chọn có thể"
+        ],
+        "en": [
+          "Handle generically",
+          "Ask for more information to clarify intent",
+          "Provide available options"
+        ]
+      }
+    },
+    "metadata_labels": {
+      "vi": {
+        "keywords": "🔑 Từ khóa",
+        "patterns": "📝 Mẫu câu",
+        "confidence_adjusted": "🎯 Confidence được điều chỉnh bởi vector similarity",
+        "vector_similarity": "🔍 Vector similarity",
+        "from_cache": "💾 Từ cache",
+        "processing_time": "⚡ Thời gian xử lý"
+      },
+      "en": {
+        "keywords": "🔑 Keywords",
+        "patterns": "📝 Patterns", 
+        "confidence_adjusted": "🎯 Confidence adjusted by vector similarity",
+        "vector_similarity": "🔍 Vector similarity",
+        "from_cache": "💾 From cache",
+        "processing_time": "⚡ Processing time"
+      }
+    }
+  }
+} 

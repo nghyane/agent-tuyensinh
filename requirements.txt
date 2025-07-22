@@ -1,0 +1,44 @@
+# Core dependencies for FPT University Agent - Refactored
+# Python 3.9+
+
+# Async framework
+asyncio-mqtt>=0.11.0
+
+# Structured logging
+structlog>=23.1.0
+
+# Type checking and validation
+pydantic>=2.0.0
+typing-extensions>=4.7.0
+
+# Text processing
+unidecode>=1.3.6
+
+# Multi-agent framework
+agno>=1.7.5  # For agent orchestration and multi-agent systems
+
+# FastAPI dependencies
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+starlette>=0.46.0
+python-multipart>=0.0.20
+
+# Optional dependencies (install as needed)
+
+# Vector stores
+qdrant-client>=1.6.0  # For vector search
+
+# Embeddings
+openai>=1.0.0  # For OpenAI embeddings
+
+# Caching
+# redis>=4.5.0  # Uncomment for Redis caching
+
+# Development dependencies (install separately)
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0
+# pytest-cov>=4.1.0
+# mypy>=1.5.0
+# black>=23.7.0
+# flake8>=6.0.0
+# pre-commit>=3.3.0
