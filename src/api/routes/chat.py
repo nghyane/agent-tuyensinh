@@ -12,6 +12,7 @@ import logging
 
 # Import Agent type for proper type hints
 from agno.agent import Agent
+from agno.memory.v2.memory import Memory
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -35,11 +36,13 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Enhanced chat response"""
+    """Enhanced chat response with Agno metrics and tool calls"""
     response: str = Field(..., description="Agent response")
     session_id: str = Field(..., description="Session identifier")
     user_id: str = Field(..., description="User identifier")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Response timestamp")
+    metrics: Optional[Dict[str, Any]] = Field(None, description="Agent run metrics")
+    tool_calls: Optional[List[Dict[str, Any]]] = Field(None, description="Tool calls made during response")
 
 
 class MemoryResponse(BaseModel):
@@ -77,34 +80,61 @@ async def get_agent() -> Agent:
 
 
 # Core chat functionality
-async def _process_chat_message(agent: Agent, message: str, user_id: str, session_id: Optional[str] = None) -> str:
+async def _process_chat_message(agent: Agent, message: str, user_id: str, session_id: Optional[str] = None) -> tuple[str, Optional[Dict[str, Any]], Optional[List[Dict[str, Any]]]]:
     """Process chat message with proper error handling and logging"""
     try:
         logger.info(f"Processing message for user {user_id}, session {session_id}")
         
         # Run agent with timeout protection
-        response_generator = await asyncio.wait_for(
+        response = await asyncio.wait_for(
             agent.arun(message, user_id=user_id, session_id=session_id),
             timeout=60.0
         )
         
-        # Handle async generator response
-        if hasattr(response_generator, '__aiter__'):
-            last_response = None
-            async for response in response_generator:
-                last_response = response
-            response_content = last_response.content if last_response else "No response generated"
+        # Handle response according to Agno docs
+        if hasattr(response, 'content'):
+            # Direct response object
+            response_content = response.content
+            metrics = getattr(response, 'metrics', None)
+            tool_calls = getattr(response, 'tool_calls', None)
+        elif hasattr(response, '__aiter__'):
+            # Streaming response
+            response_content = ""
+            metrics = None
+            tool_calls = None
+            async for chunk in response:
+                if hasattr(chunk, 'content'):
+                    response_content += chunk.content
+                if metrics is None and hasattr(chunk, 'metrics'):
+                    metrics = chunk.metrics
+                if tool_calls is None and hasattr(chunk, 'tool_calls'):
+                    tool_calls = chunk.tool_calls
         else:
-            response_content = response_generator.content
+            # Fallback
+            response_content = str(response)
+            metrics = None
+            tool_calls = None
             
         logger.info(f"Successfully processed message for user {user_id}")
-        return response_content
+        return response_content, metrics, tool_calls
         
     except asyncio.TimeoutError:
         logger.error(f"Timeout processing message for user {user_id}")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Request timeout - agent took too long to respond"
+        )
+    except ImportError as e:
+        logger.error(f"Import error for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service dependencies not available"
+        )
+    except ValueError as e:
+        logger.error(f"Invalid parameters for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid request parameters: {str(e)}"
         )
     except Exception as e:
         logger.error(f"Error processing message for user {user_id}: {str(e)}")
@@ -118,7 +148,15 @@ async def _process_chat_message(agent: Agent, message: str, user_id: str, sessio
 @chat_router.post("/send", response_model=ChatResponse)
 async def send_message(chat_request: ChatRequest, agent: Agent = Depends(get_agent)):
     """Send a message to the FPT University Agent"""
-    response_content = await _process_chat_message(
+    # Validate session ID first for better performance
+    if not chat_request.session_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="session_id is required for conversation continuity. Please provide a session_id in your request."
+        )
+    
+    # Process chat message
+    response_content, metrics, tool_calls = await _process_chat_message(
         agent=agent,
         message=chat_request.message,
         user_id=chat_request.user_id,
@@ -127,8 +165,10 @@ async def send_message(chat_request: ChatRequest, agent: Agent = Depends(get_age
     
     return ChatResponse(
         response=response_content,
-        session_id=agent.session_id or chat_request.session_id,
-        user_id=chat_request.user_id
+        session_id=chat_request.session_id,
+        user_id=chat_request.user_id,
+        metrics=metrics,
+        tool_calls=tool_calls
     )
 
 
@@ -141,7 +181,8 @@ async def get_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
             detail="Memory system not available"
         )
     
-    memories = agent.memory.get_user_memories(user_id=user_id)
+    # Use memory API directly with type assertion
+    memories = agent.memory.get_user_memories(user_id=user_id)  # type: ignore
     
     # Convert memories to serializable format
     memory_list = []

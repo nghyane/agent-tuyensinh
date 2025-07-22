@@ -72,7 +72,7 @@ class Result(Generic[T]):
     """Generic result type for operations that can fail"""
     success: bool
     data: Optional[T] = None
-    error: Optional[str] = None
+    error_message: Optional[str] = None
     error_code: Optional[str] = None
     
     @classmethod
@@ -83,7 +83,7 @@ class Result(Generic[T]):
     @classmethod
     def error(cls, error: str, error_code: Optional[str] = None) -> 'Result[T]':
         """Create error result"""
-        return cls(success=False, error=error, error_code=error_code)
+        return cls(success=False, error_message=error, error_code=error_code)
     
     def is_ok(self) -> bool:
         """Check if result is successful"""
@@ -120,3 +120,24 @@ class PaginatedResult(Generic[T]):
     def total_pages(self) -> int:
         """Calculate total pages"""
         return (self.total + self.page_size - 1) // self.page_size
+
+
+# University API types
+class UniversityApiEndpoint(Enum):
+    """University API endpoints"""
+    BASE_URL = "https://core-tuyensinh-production.up.railway.app"
+    HEALTH = "/health"
+    DEPARTMENTS = "/api/v1/departments"
+    PROGRAMS = "/api/v1/programs"
+    CAMPUSES = "/api/v1/campuses"
+    CAMPUSES_SUMMARY = "/api/v1/campuses/summary"
+
+
+@dataclass
+class UniversityApiResponse:
+    """University API response"""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    status_code: Optional[int] = None
+    meta: Optional[Dict[str, Any]] = None

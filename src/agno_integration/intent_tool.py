@@ -29,10 +29,7 @@ class IntentDetectionTool(Toolkit):
         """
         self.intent_service = intent_service
 
-        super().__init__(name="intent_detection")
-
-        # Register the detect function
-        self.register(self.detect_intent)
+        super().__init__(name="intent_detection", tools=[self.detect_intent])
 
     async def detect_intent(self, query: str, user_id: str = "agno_user", language: Optional[str] = None) -> str:
         """

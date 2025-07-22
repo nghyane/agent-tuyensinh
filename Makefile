@@ -5,8 +5,10 @@
 # Installation
 install:
 	@echo "📦 Installing production dependencies..."
+	chmod +x activate_env.sh 
+	./activate_env.sh
 	pip install -r requirements.txt
-	export $(cat .env | grep -v '^#' | xargs)
+	
 
 
 demo-performance: ## Run demo with performance monitoring
