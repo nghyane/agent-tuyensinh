@@ -6,9 +6,11 @@ Optimized for Agno framework best practices
 import json
 import logging
 from typing import Optional
+from dataclasses import asdict
 
 # Import Agent type for proper type hints
 from agno.agent import Agent
+from agno.memory.v2.schema import UserMemory
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -139,18 +141,20 @@ async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_a
 
 @chat_router.get("/memory/{user_id}")
 async def get_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
-    """Get user memories from the agent's memory system"""
+    """Get user memories from the agent's memory system using Agno standard method"""
     if not hasattr(agent, "memory") or agent.memory is None:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Memory system not available",
         )
 
-    # Use Agno's built-in memory API directly
+    # Use Agno's standard memory API as per docs
     memories = agent.memory.get_user_memories(user_id=user_id)  # type: ignore
 
-    # Return Agno memory data directly
-    return {"memories": memories, "count": len(memories), "user_id": user_id}
+    # Convert to serializable format using asdict() as per Agno docs
+    serializable_memories = [asdict(memory) for memory in memories]
+
+    return {"memories": serializable_memories, "count": len(serializable_memories), "user_id": user_id}
 
 
 @chat_router.delete("/memory/{user_id}")
@@ -170,14 +174,14 @@ async def clear_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
 
 @chat_router.get("/sessions/{user_id}")
 async def get_user_sessions(user_id: str, agent: Agent = Depends(get_agent)):
-    """Get all session IDs for a specific user using standard Agno method"""
+    """Get all session IDs for a specific user using Agno standard method"""
     if not hasattr(agent, "storage") or agent.storage is None:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Storage system not available",
         )
 
-    # Use Agno's built-in storage API directly
+    # Use Agno's standard storage API as per docs
     sessions = agent.storage.get_all_session_ids(user_id)
 
     return {"sessions": sessions, "count": len(sessions), "user_id": user_id}
@@ -185,13 +189,18 @@ async def get_user_sessions(user_id: str, agent: Agent = Depends(get_agent)):
 
 @chat_router.get("/history/{session_id}")
 async def get_session_history(session_id: str, agent: Agent = Depends(get_agent)):
-    """Get conversation history for a specific session using standard Agno method"""
-    # Use Agno's built-in method directly
+    """Get conversation history for a specific session using Agno standard method"""
+    # Use Agno's standard method as per docs
     messages = agent.get_messages_for_session(session_id=session_id)
+    
+    # Convert to serializable format using model_dump() as per Agno docs
+    serializable_messages = [
+        msg.model_dump(include={"role", "content", "timestamp", "created_at"})
+        for msg in messages
+    ]
 
-    # Return Agno message data directly
     return {
-        "history": messages,
+        "history": serializable_messages,
         "session_id": session_id,
-        "count": len(messages),
+        "count": len(serializable_messages),
     }

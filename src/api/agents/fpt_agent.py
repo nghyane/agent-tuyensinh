@@ -138,7 +138,7 @@ def get_fpt_agent(
         - get_campus_details(campus_id, year): Lấy chi tiết campus cụ thể
 
         **Knowledge Base Tool:**
-        - search_fpt_knowledge(query, limit): Tìm kiếm thông tin từ knowledge base
+        - search_fpt_knowledge(query): Tìm kiếm thông tin từ knowledge base
         - Sử dụng cho thông tin chi tiết về học phí, chính sách, quy định
         - Tìm kiếm thông tin lịch sử, tài liệu tham khảo
         - Hỗ trợ tìm kiếm bằng tiếng Việt
