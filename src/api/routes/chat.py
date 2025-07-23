@@ -68,9 +68,15 @@ async def _process_chat_message(
     return response
 
 
-def _format_sse_data(data: dict) -> str:
+def _format_sse_data(data) -> str:
     """Format data as Server-Sent Events"""
-    return f"data: {json.dumps(data, default=str)}\n\n"
+    # Auto convert object to dict using vars()
+    if hasattr(data, '__dict__'):
+        event_dict = vars(data)
+    else:
+        event_dict = data
+    
+    return f"data: {json.dumps(event_dict, default=str)}\n\n"
 
 
 # API Endpoints
@@ -115,7 +121,7 @@ async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_a
         )
 
         async for event in response_stream:
-            # Use Agno's built-in event data directly without any formatting
+            # Format event as proper JSON for frontend consumption
             yield _format_sse_data(event)
 
     return StreamingResponse(
