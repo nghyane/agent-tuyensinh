@@ -9,6 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
 # Install Poetry and system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    libpq-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/* \
     && pip install poetry
 
