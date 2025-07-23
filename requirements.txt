@@ -38,8 +38,7 @@ grpcio>=1.50.0  # Required by qdrant-client
 openai>=1.0.0  # For OpenAI embeddings
 
 # Database ORM and PostgreSQL
-sqlalchemy>=2.0.0  # For database operations and ORM
-psycopg[binary]>=3.1.0  # PostgreSQL adapter for Python
+psycopg[binary]>=3.1.0  # PostgreSQL adapter for Python (official agno recommendation)
 
 # Caching
 # redis>=4.5.0  # Uncomment for Redis caching

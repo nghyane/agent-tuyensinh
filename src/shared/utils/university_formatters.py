@@ -50,12 +50,14 @@ class DepartmentFormatter(BaseFormatter):
         name = dept.get("name", "N/A")
         name_en = dept.get("name_en", "")
         code = dept.get("code", "N/A")
+        dept_id = dept.get("id", "N/A")
         description = dept.get("description", "")
 
         result = f"🏛️ **{name}**\n"
         if name_en:
             result += f"   📝 English: {name_en}\n"
         result += f"   🔖 Code: {code}\n"
+        result += f"   🆔 ID: {dept_id}\n"
         if description:
             clean_desc = self.text_processor.clean_query(description)
             result += f"   📄 Mô tả: {clean_desc}\n"
@@ -85,6 +87,7 @@ class ProgramFormatter(BaseFormatter):
         name = program.get("name", "N/A")
         name_en = program.get("name_en", "")
         code = program.get("code", "N/A")
+        program_id = program.get("id", "N/A")
         duration = program.get("duration_years", "N/A")
         department = program.get("department", {})
 
@@ -97,6 +100,7 @@ class ProgramFormatter(BaseFormatter):
         if name_en:
             result += f"   📝 English: {name_en}\n"
         result += f"   🔖 Code: {code}\n"
+        result += f"   🆔 ID: {program_id}\n"
         result += f"   ⏱️ Thời gian: {duration} năm\n"
         result += f"   🏛️ Khoa: {dept_name}\n\n"
         return result
@@ -127,6 +131,7 @@ class ProgramFormatter(BaseFormatter):
         name = program.get("name", "N/A")
         name_en = program.get("name_en", "")
         code = program.get("code", "N/A")
+        program_id = program.get("id", "N/A")
         duration = program.get("duration_years", "N/A")
         department = program.get("department", {})
 
@@ -144,6 +149,7 @@ class ProgramFormatter(BaseFormatter):
         if name_en:
             result += f"📝 **English**: {name_en}\n"
         result += f"🔖 **Mã chương trình**: {code}\n"
+        result += f"🆔 **ID chương trình**: {program_id}\n"
         result += f"⏱️ **Thời gian đào tạo**: {duration} năm\n\n"
 
         result += "🏛️ **THÔNG TIN KHOA**\n"
@@ -162,6 +168,7 @@ class CampusFormatter(BaseFormatter):
         """Format single campus"""
         name = campus.get("name", "N/A")
         code = campus.get("code", "N/A")
+        campus_id = campus.get("id", "N/A")
         city = campus.get("city", "N/A")
         address = campus.get("address", "")
         phone = campus.get("phone", "")
@@ -177,6 +184,7 @@ class CampusFormatter(BaseFormatter):
 
         result = f"🏛️ **{name}**\n"
         result += f"   🔖 Code: {code}\n"
+        result += f"   🆔 ID: {campus_id}\n"
         result += f"   📍 Thành phố: {city}\n"
 
         if address:
@@ -224,12 +232,14 @@ class CampusFormatter(BaseFormatter):
         """Format basic campus information"""
         name = campus.get("name", "N/A")
         code = campus.get("code", "N/A")
+        campus_id = campus.get("id", "N/A")
         city = campus.get("city", "N/A")
         address = campus.get("address", "")
 
         result = "🏛️ **CHI TIẾT CAMPUS FPT UNIVERSITY**\n\n"
         result += f"🏫 **Tên campus**: {name}\n"
         result += f"🔖 **Mã campus**: {code}\n"
+        result += f"🆔 **ID campus**: {campus_id}\n"
         result += f"📍 **Thành phố**: {city}\n"
 
         if address:

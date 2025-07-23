@@ -3,7 +3,7 @@ Common type definitions for the intent detection system
 """
 
 from enum import Enum
-from typing import Dict, Any, Union, TypeVar, Generic, Optional
+from typing import Dict, Any, Union, TypeVar, Generic, Optional, List
 from dataclasses import dataclass
 
 # Basic type aliases
@@ -137,7 +137,7 @@ class UniversityApiEndpoint(Enum):
 class UniversityApiResponse:
     """University API response"""
     success: bool
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
     error_message: Optional[str] = None
     status_code: Optional[int] = None
     meta: Optional[Dict[str, Any]] = None

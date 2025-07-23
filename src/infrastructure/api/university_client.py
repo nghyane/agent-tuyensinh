@@ -5,7 +5,7 @@ Pure API client logic without formatting concerns
 
 import asyncio
 import weakref
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 import aiohttp
 from shared.types import Result, UniversityApiEndpoint, UniversityApiResponse
 
@@ -105,15 +105,17 @@ class UniversityApiClient:
                     response_data = {"message": await response.text()}
 
                 if 200 <= status_code < 300:
-                    # Ensure data and meta are dictionaries or None
-                    response_data_dict = None
-                    meta_dict = None
+                    # Extract data and meta from response
+                    response_data_dict: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
+                    meta_dict: Optional[Dict[str, Any]] = None
 
                     if isinstance(response_data, dict):
                         raw_data = response_data.get("data")
                         raw_meta = response_data.get("meta")
 
-                        response_data_dict = raw_data if isinstance(raw_data, dict) else None
+                        # Accept both dict and list for data, but ensure type safety
+                        if isinstance(raw_data, (dict, list)) or raw_data is None:
+                            response_data_dict = raw_data
                         meta_dict = raw_meta if isinstance(raw_meta, dict) else None
 
                     return UniversityApiResponse(
