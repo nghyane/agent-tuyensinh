@@ -4,18 +4,21 @@ FPT University Agent configuration
 
 import os
 from textwrap import dedent
-from typing import Optional
+from typing import Any, List, Optional
 
 from agno.agent import Agent
-from agno.models.openai import OpenAILike
-from agno.tools.reasoning import ReasoningTools
-from agno.storage.postgres import PostgresStorage
 from agno.memory.v2.db.postgres import PostgresMemoryDb
 from agno.memory.v2.memory import Memory
+from agno.models.openai import OpenAILike
+from agno.storage.postgres import PostgresStorage
+from agno.tools.knowledge import KnowledgeTools
+from agno.tools.reasoning import ReasoningTools
 
 from agno_integration.intent_tool import create_intent_detection_tool
-from agno_integration.university_api_tool import create_university_api_tool, UniversityApiTool
-from agno.tools.knowledge import KnowledgeTools
+from agno_integration.university_api_tool import (
+    UniversityApiTool,
+    create_university_api_tool,
+)
 from core.application.services.hybrid_intent_service import HybridIntentDetectionService
 from infrastructure.knowledge.fpt_knowledge_base import create_fpt_knowledge_base
 
@@ -44,7 +47,7 @@ def get_fpt_agent(
     """
 
     # Create tools for the agent
-    tools = []
+    tools: List[Any] = []
     tools.append(ReasoningTools(add_instructions=True))
 
     # Add intent detection tool if service is provided
@@ -58,12 +61,12 @@ def get_fpt_agent(
     if enable_rag:
         try:
             knowledge_manager = create_fpt_knowledge_base()
-            
+
             # Kiểm tra xem knowledge base có tồn tại không
             if not knowledge_manager.exists():
                 print("📚 Knowledge base not found, creating new one...")
                 knowledge_manager.load_knowledge_base(recreate=True)
-            
+
             # Tạo KnowledgeTools với Qdrant
             knowledge_tools = KnowledgeTools(
                 knowledge=knowledge_manager.knowledge_base,
@@ -82,26 +85,23 @@ def get_fpt_agent(
     # Get database URL from environment variable
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        raise ValueError("DATABASE_URL environment variable is required for PostgreSQL storage")
-    
+        raise ValueError(
+            "DATABASE_URL environment variable is required for PostgreSQL storage"
+        )
+
     # Storage for agent sessions
-    storage = PostgresStorage(
-        table_name="fpt_agent_sessions",
-        db_url=db_url
-    )
+    storage = PostgresStorage(table_name="fpt_agent_sessions", db_url=db_url)
 
     # Memory for long-term user memory
     memory = Memory(
-        db=PostgresMemoryDb(
-            table_name="fpt_user_memories",
-            db_url=db_url
-        ),
+        db=PostgresMemoryDb(table_name="fpt_user_memories", db_url=db_url),
         delete_memories=True,
         clear_memories=True,
     )
 
     # Agent instructions with RAG capabilities
-    instructions = dedent("""
+    instructions = dedent(
+        """
         As FPT University Agent, your goal is to provide helpful, accurate, and professional assistance
         to students, staff, and visitors of FPT University.
 
@@ -159,7 +159,7 @@ def get_fpt_agent(
         **COMMON USE CASES:**
 
         **Học phí và chương trình học:**
-        - Khi hỏi về học phí ngành cụ thể (như "CNTT"): 
+        - Khi hỏi về học phí ngành cụ thể (như "CNTT"):
           1. Dùng get_departments() để tìm department liên quan
           2. Dùng get_programs(department_code) để lọc theo department
           3. Dùng get_program_details(program_id) để lấy chi tiết học phí
@@ -209,7 +209,8 @@ def get_fpt_agent(
 
         Always be truthful about what you know and don't know. If you're unsure about specific details,
         suggest contacting the relevant department or checking the official FPT University website.
-        """)
+        """
+    )
 
     return Agent(
         name="FPT University Agent",
@@ -218,7 +219,7 @@ def get_fpt_agent(
         model=OpenAILike(
             id=model_id,
             api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_BASE_URL")
+            base_url=os.getenv("OPENAI_BASE_URL"),
         ),
         # Tools available to the agent
         tools=tools,
@@ -228,12 +229,14 @@ def get_fpt_agent(
         memory=memory,
         enable_agentic_memory=True,
         # Description of the agent
-        description=dedent("""
+        description=dedent(
+            """
         You are FPT University Agent, an AI assistant designed to help students, staff, and visitors
         with information about FPT University. You have access to intent detection capabilities,
-        reasoning tools, real-time university data, and a comprehensive knowledge base to provide 
+        reasoning tools, real-time university data, and a comprehensive knowledge base to provide
         thoughtful, accurate responses. You can flexibly choose the most appropriate tools based on user queries.
-        """),
+        """
+        ),
         # Instructions for the agent
         instructions=instructions,
         # Add state in messages for dynamic content
@@ -301,7 +304,7 @@ class FPTAgentManager:
             await self.university_api_tool.close()
 
         # Close agent storage if available
-        if self.agent and hasattr(self.agent, 'storage') and self.agent.storage:
+        if self.agent and hasattr(self.agent, "storage") and self.agent.storage:
             # SqliteStorage doesn't have close method, skip cleanup
             pass
 

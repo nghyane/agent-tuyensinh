@@ -3,13 +3,14 @@ University Formatters for Agno Framework
 Response formatting classes for university data
 """
 
-from typing import Dict, Any, List, Union, Optional
+from typing import Any, Dict, List, Optional
+
 from shared.utils.text_processing import VietnameseTextProcessor
 
 
 class BaseFormatter:
     """Base formatter with common utilities"""
-    
+
     def __init__(self):
         self.text_processor = VietnameseTextProcessor()
 
@@ -19,7 +20,7 @@ class BaseFormatter:
         meta: Dict[str, Any],
         title: str,
         format_item_func,
-        empty_message: str
+        empty_message: str,
     ) -> str:
         """Helper method to format list responses consistently"""
         if not items:
@@ -44,7 +45,7 @@ class BaseFormatter:
 
 class DepartmentFormatter(BaseFormatter):
     """Formatter for department data"""
-    
+
     def format_department(self, dept: Dict[str, Any]) -> str:
         """Format single department"""
         name = dept.get("name", "N/A")
@@ -65,9 +66,7 @@ class DepartmentFormatter(BaseFormatter):
         return result
 
     def format_departments_list(
-        self,
-        departments: List[Dict[str, Any]],
-        meta: Dict[str, Any]
+        self, departments: List[Dict[str, Any]], meta: Dict[str, Any]
     ) -> str:
         """Format departments list"""
         return self._format_list_response(
@@ -75,13 +74,13 @@ class DepartmentFormatter(BaseFormatter):
             meta,
             "DANH SÁCH KHOA/PHÒNG BAN FPT UNIVERSITY",
             self.format_department,
-            "Không tìm thấy thông tin khoa/phòng ban nào."
+            "Không tìm thấy thông tin khoa/phòng ban nào.",
         )
 
 
 class ProgramFormatter(BaseFormatter):
     """Formatter for program data"""
-    
+
     def format_program(self, program: Dict[str, Any]) -> str:
         """Format single program"""
         name = program.get("name", "N/A")
@@ -109,7 +108,7 @@ class ProgramFormatter(BaseFormatter):
         self,
         programs: List[Dict[str, Any]],
         meta: Dict[str, Any],
-        department_code: Optional[str] = None
+        department_code: Optional[str] = None,
     ) -> str:
         """Format programs list"""
         filter_text = f" (khoa: {department_code})" if department_code else ""
@@ -120,7 +119,7 @@ class ProgramFormatter(BaseFormatter):
             meta,
             "DANH SÁCH CHƯƠNG TRÌNH HỌC FPT UNIVERSITY",
             self.format_program,
-            empty_msg
+            empty_msg,
         )
 
     def format_program_details(self, program: Dict[str, Any]) -> str:
@@ -163,7 +162,7 @@ class ProgramFormatter(BaseFormatter):
 
 class CampusFormatter(BaseFormatter):
     """Formatter for campus data"""
-    
+
     def format_campus(self, campus: Dict[str, Any]) -> str:
         """Format single campus"""
         name = campus.get("name", "N/A")
@@ -176,11 +175,19 @@ class CampusFormatter(BaseFormatter):
         discount = campus.get("discount_percentage", 0)
 
         prep_fees = campus.get("preparation_fees", {})
-        orientation = prep_fees.get("orientation", {}) if isinstance(prep_fees, dict) else {}
-        english_prep = prep_fees.get("english_prep", {}) if isinstance(prep_fees, dict) else {}
+        orientation = (
+            prep_fees.get("orientation", {}) if isinstance(prep_fees, dict) else {}
+        )
+        english_prep = (
+            prep_fees.get("english_prep", {}) if isinstance(prep_fees, dict) else {}
+        )
 
         available_programs = campus.get("available_programs", {})
-        program_count = available_programs.get("count", 0) if isinstance(available_programs, dict) else 0
+        program_count = (
+            available_programs.get("count", 0)
+            if isinstance(available_programs, dict)
+            else 0
+        )
 
         result = f"🏛️ **{name}**\n"
         result += f"   🔖 Code: {code}\n"
@@ -214,10 +221,7 @@ class CampusFormatter(BaseFormatter):
         return result
 
     def format_campuses_list(
-        self,
-        campuses: List[Dict[str, Any]],
-        meta: Dict[str, Any],
-        year: int = 2025
+        self, campuses: List[Dict[str, Any]], meta: Dict[str, Any], year: int = 2025
     ) -> str:
         """Format campuses list"""
         return self._format_list_response(
@@ -225,7 +229,7 @@ class CampusFormatter(BaseFormatter):
             meta,
             f"DANH SÁCH CAMPUS FPT UNIVERSITY ({year})",
             self.format_campus,
-            "Không tìm thấy thông tin campus nào."
+            "Không tìm thấy thông tin campus nào.",
         )
 
     def format_basic_campus_info(self, campus: Dict[str, Any]) -> str:
@@ -290,7 +294,9 @@ class CampusFormatter(BaseFormatter):
 
         return result
 
-    def _format_foundation_fee(self, fee_info: Dict[str, Any], fee_type: str, emoji: str) -> str:
+    def _format_foundation_fee(
+        self, fee_info: Dict[str, Any], fee_type: str, emoji: str
+    ) -> str:
         """Format foundation fee information"""
         if not isinstance(fee_info, dict) or not fee_info.get("fee"):
             return ""
@@ -316,8 +322,12 @@ class CampusFormatter(BaseFormatter):
     def format_foundation_fees(self, campus: Dict[str, Any], year: int) -> str:
         """Format foundation fees information"""
         prep_fees = campus.get("preparation_fees", {})
-        orientation = prep_fees.get("orientation", {}) if isinstance(prep_fees, dict) else {}
-        english_prep = prep_fees.get("english_prep", {}) if isinstance(prep_fees, dict) else {}
+        orientation = (
+            prep_fees.get("orientation", {}) if isinstance(prep_fees, dict) else {}
+        )
+        english_prep = (
+            prep_fees.get("english_prep", {}) if isinstance(prep_fees, dict) else {}
+        )
 
         result = f"\n💳 **PHÍ FOUNDATION ({year})**\n"
         result += self._format_foundation_fee(orientation, "Phí định hướng", "📚")
@@ -336,4 +346,4 @@ class CampusFormatter(BaseFormatter):
         result += self.format_programs_info(campus)
         result += self.format_foundation_fees(campus, year)
 
-        return result 
+        return result

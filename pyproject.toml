@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "fpt-university-agent"
+version = "1.0.0"
+description = "FPT University Agent with Intent Detection and Agno Integration"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.116.1"
+uvicorn = {extras = ["standard"], version = "^0.35.0"}
+pydantic = "^2.11.7"
+python-dotenv = "^1.1.1"
+psycopg = "^3.2.9"
+sqlalchemy = "^2.0.41"
+openai = "^1.97.1"
+tiktoken = "^0.9.0"
+pgvector = "^0.4.1"
+qdrant-client = "^1.15.0"
+agno = "^1.7.5"
+cohere = "^5.16.1"
+httpx = "^0.28.1"
+python-multipart = "^0.0.20"
+aiohttp = "^3.12.14"
+pydantic-settings = "^2.10.1"
+starlette = "^0.47.2"
+asyncio-mqtt = "^0.16.2"
+unstructured = "^0.18.9"
+markdown = "^3.8.2"
+python-docx = "^1.2.0"
+requests = "^2.32.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.5.0"
+ruff = "^0.12.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true 

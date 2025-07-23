@@ -2,9 +2,9 @@
 Common type definitions for the intent detection system
 """
 
-from enum import Enum
-from typing import Dict, Any, Union, TypeVar, Generic, Optional, List
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 # Basic type aliases
 QueryText = str
@@ -15,11 +15,12 @@ Metadata = Dict[str, Any]
 CacheKey = str
 
 # Generic types
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class DetectionMethod(Enum):
     """Methods used for intent detection"""
+
     RULE = "rule"
     VECTOR = "vector"
     RERANK = "rerank"
@@ -29,15 +30,17 @@ class DetectionMethod(Enum):
 
 class ConfidenceLevel(Enum):
     """Confidence level categories"""
+
     VERY_HIGH = "very_high"  # >= 0.9
-    HIGH = "high"           # >= 0.7
-    MEDIUM = "medium"       # >= 0.5
-    LOW = "low"            # >= 0.3
+    HIGH = "high"  # >= 0.7
+    MEDIUM = "medium"  # >= 0.5
+    LOW = "low"  # >= 0.3
     VERY_LOW = "very_low"  # < 0.3
 
 
 class IntentCategory(Enum):
     """Categories of intents for FPT University"""
+
     TUITION_INQUIRY = "tuition_inquiry"
     ADMISSION_REQUIREMENTS = "admission_requirements"
     PROGRAM_INFORMATION = "program_information"
@@ -53,6 +56,7 @@ class IntentCategory(Enum):
 
 class LogLevel(Enum):
     """Logging levels"""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -62,6 +66,7 @@ class LogLevel(Enum):
 
 class Environment(Enum):
     """Application environments"""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -70,25 +75,26 @@ class Environment(Enum):
 @dataclass
 class Result(Generic[T]):
     """Generic result type for operations that can fail"""
+
     success: bool
     data: Optional[T] = None
     error_message: Optional[str] = None
     error_code: Optional[str] = None
-    
+
     @classmethod
-    def ok(cls, data: T) -> 'Result[T]':
+    def ok(cls, data: T) -> "Result[T]":
         """Create successful result"""
         return cls(success=True, data=data)
-    
+
     @classmethod
-    def error(cls, error: str, error_code: Optional[str] = None) -> 'Result[T]':
+    def error(cls, error: str, error_code: Optional[str] = None) -> "Result[T]":
         """Create error result"""
         return cls(success=False, error_message=error, error_code=error_code)
-    
+
     def is_ok(self) -> bool:
         """Check if result is successful"""
         return self.success
-    
+
     def is_error(self) -> bool:
         """Check if result is error"""
         return not self.success
@@ -97,10 +103,11 @@ class Result(Generic[T]):
 @dataclass
 class PaginationParams:
     """Pagination parameters"""
+
     page: int = 1
     page_size: int = 20
     offset: int = 0
-    
+
     def __post_init__(self):
         if self.offset == 0:
             self.offset = (self.page - 1) * self.page_size
@@ -109,13 +116,14 @@ class PaginationParams:
 @dataclass
 class PaginatedResult(Generic[T]):
     """Paginated result container"""
+
     items: list[T]
     total: int
     page: int
     page_size: int
     has_next: bool
     has_prev: bool
-    
+
     @property
     def total_pages(self) -> int:
         """Calculate total pages"""
@@ -125,6 +133,7 @@ class PaginatedResult(Generic[T]):
 # University API types
 class UniversityApiEndpoint(Enum):
     """University API endpoints"""
+
     BASE_URL = "https://core-tuyensinh-production.up.railway.app"
     HEALTH = "/health"
     DEPARTMENTS = "/api/v1/departments"
@@ -136,6 +145,7 @@ class UniversityApiEndpoint(Enum):
 @dataclass
 class UniversityApiResponse:
     """University API response"""
+
     success: bool
     data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
     error_message: Optional[str] = None

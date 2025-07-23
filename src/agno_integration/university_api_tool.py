@@ -3,11 +3,16 @@ University API Tool for Agno Framework
 Main tool class that orchestrates between API client and formatters
 """
 
-from typing import Dict, Any, Optional, Union
+from typing import Optional
+
 from agno.tools.toolkit import Toolkit
 
 from infrastructure.api.university_client import UniversityApiClient
-from shared.utils.university_formatters import DepartmentFormatter, ProgramFormatter, CampusFormatter
+from shared.utils.university_formatters import (
+    CampusFormatter,
+    DepartmentFormatter,
+    ProgramFormatter,
+)
 
 
 class UniversityApiTool(Toolkit):
@@ -36,15 +41,11 @@ class UniversityApiTool(Toolkit):
                 self.get_programs,
                 self.get_program_details,
                 self.get_campuses,
-                self.get_campus_details
-            ]
+                self.get_campus_details,
+            ],
         )
 
-    async def get_departments(
-        self,
-        limit: int = 100,
-        offset: int = 0
-    ) -> str:
+    async def get_departments(self, limit: int = 100, offset: int = 0) -> str:
         """
         Lấy danh sách các khoa/phòng ban của FPT University
 
@@ -56,21 +57,24 @@ class UniversityApiTool(Toolkit):
             Danh sách khoa/phòng ban được format đẹp
         """
         result = await self.client.get_departments(limit=limit, offset=offset)
-        
+
         if result.is_ok():
             data = result.data or {}
             departments = data.get("departments", [])
             meta = data.get("meta", {})
-            
+
             return self.department_formatter.format_departments_list(departments, meta)
         else:
-            return f"❌ **Lỗi khi lấy thông tin khoa/phòng ban**\n\n{result.error_message}"
+            return (
+                f"❌ **Lỗi khi lấy thông tin khoa/phòng ban**\n\n"
+                f"{result.error_message}"
+            )
 
     async def get_programs(
         self,
         department_code: Optional[str] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> str:
         """
         Lấy danh sách chương trình học/ngành của FPT University
@@ -84,21 +88,22 @@ class UniversityApiTool(Toolkit):
             Danh sách chương trình học được format đẹp
         """
         result = await self.client.get_programs(
-            department_code=department_code,
-            limit=limit,
-            offset=offset
+            department_code=department_code, limit=limit, offset=offset
         )
-        
+
         if result.is_ok():
             data = result.data or {}
             programs = data.get("programs", [])
             meta = data.get("meta", {})
-            
+
             return self.program_formatter.format_programs_list(
                 programs, meta, department_code
             )
         else:
-            return f"❌ **Lỗi khi lấy thông tin chương trình học**\n\n{result.error_message}"
+            return (
+                f"❌ **Lỗi khi lấy thông tin chương trình học**\n\n"
+                f"{result.error_message}"
+            )
 
     async def get_program_details(self, program_id: str) -> str:
         """
@@ -111,18 +116,18 @@ class UniversityApiTool(Toolkit):
             Chi tiết chương trình học được format đẹp
         """
         result = await self.client.get_program_details(program_id)
-        
+
         if result.is_ok():
             program = result.data or {}
             return self.program_formatter.format_program_details(program)
         else:
-            return f"❌ **Lỗi khi lấy chi tiết chương trình học**\n\n{result.error_message}"
+            return (
+                f"❌ **Lỗi khi lấy chi tiết chương trình học**\n\n"
+                f"{result.error_message}"
+            )
 
     async def get_campuses(
-        self,
-        year: int = 2025,
-        limit: int = 100,
-        offset: int = 0
+        self, year: int = 2025, limit: int = 100, offset: int = 0
     ) -> str:
         """
         Lấy danh sách campus của FPT University với thông tin phí foundation
@@ -136,15 +141,15 @@ class UniversityApiTool(Toolkit):
             Danh sách campus được format đẹp
         """
         result = await self.client.get_campuses(year=year, limit=limit, offset=offset)
-        
+
         if result.is_ok():
             data = result.data or {}
             campuses = data.get("campuses", [])
             meta = data.get("meta", {})
-            
+
             return self.campus_formatter.format_campuses_list(campuses, meta, year)
         else:
-            return f"❌ **Lỗi khi lấy thông tin campus**\n\n{result.error_message}"
+            return f"❌ **Lỗi khi lấy thông tin campus**\n\n" f"{result.error_message}"
 
     async def get_campus_details(self, campus_id: str, year: int = 2025) -> str:
         """
@@ -158,12 +163,12 @@ class UniversityApiTool(Toolkit):
             Chi tiết campus được format đẹp
         """
         result = await self.client.get_campus_details(campus_id, year)
-        
+
         if result.is_ok():
             campus = result.data or {}
             return self.campus_formatter.format_campus_details(campus, year)
         else:
-            return f"❌ **Lỗi khi lấy chi tiết campus**\n\n{result.error_message}"
+            return f"❌ **Lỗi khi lấy chi tiết campus**\n\n" f"{result.error_message}"
 
     async def close(self):
         """Close API client session"""
@@ -188,4 +193,4 @@ def create_university_api_tool(timeout: int = 30) -> Toolkit:
     Returns:
         Toolkit instance (UniversityApiTool)
     """
-    return UniversityApiTool(timeout=timeout) 
+    return UniversityApiTool(timeout=timeout)

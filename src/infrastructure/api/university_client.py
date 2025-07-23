@@ -5,9 +5,11 @@ Pure API client logic without formatting concerns
 
 import asyncio
 import weakref
-from typing import Dict, Any, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
+
 import aiohttp
-from shared.types import Result, UniversityApiEndpoint, UniversityApiResponse
+
+from shared.common_types import Result, UniversityApiEndpoint, UniversityApiResponse
 
 
 class UniversityApiClient:
@@ -36,20 +38,20 @@ class UniversityApiClient:
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "University-Agent/1.0"
+                "User-Agent": "University-Agent/1.0",
             }
 
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             connector = aiohttp.TCPConnector(limit=10, limit_per_host=5)
             self._session = aiohttp.ClientSession(
-                headers=headers,
-                timeout=timeout,
-                connector=connector
+                headers=headers, timeout=timeout, connector=connector
             )
 
             # Update finalizer with new session
             self._finalizer.detach()
-            self._finalizer = weakref.finalize(self, self._cleanup_session, self._session)
+            self._finalizer = weakref.finalize(
+                self, self._cleanup_session, self._session
+            )
 
         return self._session
 
@@ -72,7 +74,7 @@ class UniversityApiClient:
         method: str,
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None
+        data: Optional[Dict[str, Any]] = None,
     ) -> UniversityApiResponse:
         """
         Make HTTP request to API
@@ -94,19 +96,20 @@ class UniversityApiClient:
                 method=method,
                 url=url,
                 params=params,
-                json=data if data else None
+                json=data if data else None,
             ) as response:
-
                 status_code = response.status
 
                 try:
                     response_data = await response.json()
-                except:
+                except Exception:
                     response_data = {"message": await response.text()}
 
                 if 200 <= status_code < 300:
                     # Extract data and meta from response
-                    response_data_dict: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
+                    response_data_dict: Optional[
+                        Union[Dict[str, Any], List[Dict[str, Any]]]
+                    ] = None
                     meta_dict: Optional[Dict[str, Any]] = None
 
                     if isinstance(response_data, dict):
@@ -122,53 +125,59 @@ class UniversityApiClient:
                         success=True,
                         data=response_data_dict,
                         meta=meta_dict,
-                        status_code=status_code
+                        status_code=status_code,
                     )
                 else:
-                    error_msg = response_data.get("message", f"HTTP {status_code}") if isinstance(response_data, dict) else f"HTTP {status_code}"
+                    error_msg = (
+                        response_data.get("message", f"HTTP {status_code}")
+                        if isinstance(response_data, dict)
+                        else f"HTTP {status_code}"
+                    )
                     return UniversityApiResponse(
                         success=False,
                         error_message=error_msg,
-                        status_code=status_code
+                        status_code=status_code,
                     )
 
         except asyncio.TimeoutError:
             return UniversityApiResponse(
                 success=False,
                 error_message="Request timeout - API không phản hồi trong thời gian cho phép",
-                status_code=408
+                status_code=408,
             )
         except aiohttp.ClientError as e:
             return UniversityApiResponse(
                 success=False,
                 error_message=f"Connection error: {str(e)}",
-                status_code=500
+                status_code=500,
             )
         except Exception as e:
             return UniversityApiResponse(
                 success=False,
                 error_message=f"Unexpected error: {str(e)}",
-                status_code=500
+                status_code=500,
             )
 
     async def get_departments(
-        self,
-        limit: int = 100,
-        offset: int = 0
+        self, limit: int = 100, offset: int = 0
     ) -> Result[Dict[str, Any]]:
         """Get departments list"""
         params: Dict[str, Union[int, str]] = {
             "limit": min(max(limit, 1), 100),
-            "offset": max(offset, 0)
+            "offset": max(offset, 0),
         }
 
-        response = await self._make_request("GET", UniversityApiEndpoint.DEPARTMENTS.value, params=params)
-        
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.DEPARTMENTS.value, params=params
+        )
+
         if response.success:
-            return Result.ok({
-                "departments": response.data or [],
-                "meta": response.meta or {}
-            })
+            return Result.ok(
+                {
+                    "departments": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
         else:
             return Result.error(response.error_message or "Unknown error")
 
@@ -176,67 +185,78 @@ class UniversityApiClient:
         self,
         department_code: Optional[str] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> Result[Dict[str, Any]]:
         """Get programs list"""
         params: Dict[str, Union[int, str]] = {
             "limit": min(max(limit, 1), 100),
-            "offset": max(offset, 0)
+            "offset": max(offset, 0),
         }
 
         if department_code:
             params["department_code"] = department_code
 
-        response = await self._make_request("GET", UniversityApiEndpoint.PROGRAMS.value, params=params)
-        
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.PROGRAMS.value, params=params
+        )
+
         if response.success:
-            return Result.ok({
-                "programs": response.data or [],
-                "meta": response.meta or {}
-            })
+            return Result.ok(
+                {
+                    "programs": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
         else:
             return Result.error(response.error_message or "Unknown error")
 
     async def get_program_details(self, program_id: str) -> Result[Dict[str, Any]]:
         """Get specific program details"""
-        response = await self._make_request("GET", f"{UniversityApiEndpoint.PROGRAMS.value}/{program_id}")
-        
+        response = await self._make_request(
+            "GET", f"{UniversityApiEndpoint.PROGRAMS.value}/{program_id}"
+        )
+
         if response.success:
             return Result.ok(response.data or {})
         else:
             return Result.error(response.error_message or "Unknown error")
 
     async def get_campuses(
-        self,
-        year: int = 2025,
-        limit: int = 100,
-        offset: int = 0
+        self, year: int = 2025, limit: int = 100, offset: int = 0
     ) -> Result[Dict[str, Any]]:
         """Get campuses list"""
         params: Dict[str, Union[int, str]] = {
             "year": max(min(year, 2030), 2020),
             "limit": min(max(limit, 1), 100),
-            "offset": max(offset, 0)
+            "offset": max(offset, 0),
         }
 
-        response = await self._make_request("GET", UniversityApiEndpoint.CAMPUSES.value, params=params)
-        
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.CAMPUSES.value, params=params
+        )
+
         if response.success:
-            return Result.ok({
-                "campuses": response.data or [],
-                "meta": response.meta or {}
-            })
+            return Result.ok(
+                {
+                    "campuses": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
         else:
             return Result.error(response.error_message or "Unknown error")
 
-    async def get_campus_details(self, campus_id: str, year: int = 2025) -> Result[Dict[str, Any]]:
+    async def get_campus_details(
+        self, campus_id: str, year: int = 2025
+    ) -> Result[Dict[str, Any]]:
         """Get specific campus details"""
-        params: Dict[str, Union[int, str]] = {
-            "year": max(min(year, 2030), 2020)
-        }
+        params: Dict[str, Union[int, str]] = {"year": max(min(year, 2030), 2020)}
 
-        response = await self._make_request("GET", f"{UniversityApiEndpoint.CAMPUSES.value}/{campus_id}", params=params)
-        
+        response = await self._make_request(
+            "GET",
+            f"{UniversityApiEndpoint.CAMPUSES.value}/{campus_id}",
+            params=params,
+        )
+
         if response.success:
             return Result.ok(response.data or {})
         else:
@@ -249,7 +269,7 @@ class UniversityApiClient:
             self._session = None
 
         # Detach finalizer since we manually closed
-        if hasattr(self, '_finalizer'):
+        if hasattr(self, "_finalizer"):
             self._finalizer.detach()
 
     async def __aenter__(self):
@@ -258,4 +278,4 @@ class UniversityApiClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit - auto cleanup"""
-        await self.close() 
+        await self.close()

@@ -5,13 +5,14 @@ Tối ưu hóa với TemplateManager để quản lý text resources
 """
 
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 
 from agno.tools.toolkit import Toolkit
-from core.domain.entities import DetectionContext, IntentResult
+
 from core.application.services.hybrid_intent_service import HybridIntentDetectionService
-from shared.types import DetectionMethod
-from shared.utils.template_manager import template_manager, TemplateContext
+from core.domain.entities import DetectionContext, IntentResult
+from shared.common_types import DetectionMethod
+from shared.utils.template_manager import TemplateContext, template_manager
 
 
 class IntentDetectionTool(Toolkit):
@@ -31,7 +32,12 @@ class IntentDetectionTool(Toolkit):
 
         super().__init__(name="intent_detection", tools=[self.detect_intent])
 
-    async def detect_intent(self, query: str, user_id: str = "agno_user", language: Optional[str] = None) -> str:
+    async def detect_intent(
+        self,
+        query: str,
+        user_id: str = "agno_user",
+        language: Optional[str] = None,
+    ) -> str:
         """
         Phát hiện ý định của người dùng trong tiếng Việt và tiếng Anh.
 
@@ -51,16 +57,12 @@ class IntentDetectionTool(Toolkit):
                 language = self._detect_language(query)
 
             # Tạo detection context
-            context = DetectionContext(
-                query=query,
-                user_id=user_id,
-                language=language
-            )
+            context = DetectionContext(query=query, user_id=user_id, language=language)
 
             # Chạy intent detection với timeout
             result = await asyncio.wait_for(
                 self.intent_service.detect_intent(context),
-                timeout=10.0  # 10 second timeout
+                timeout=10.0,  # 10 second timeout
             )
 
             # Format kết quả
@@ -82,7 +84,7 @@ class IntentDetectionTool(Toolkit):
             Mã ngôn ngữ ('vi' hoặc 'en')
         """
         # Sử dụng VietnameseTextProcessor nếu có sẵn
-        if hasattr(self.intent_service, 'text_processor'):
+        if hasattr(self.intent_service, "text_processor"):
             return self.intent_service.text_processor.detect_language(query)
 
         # Fallback đơn giản
@@ -93,7 +95,9 @@ class IntentDetectionTool(Toolkit):
         language = self._detect_language(original_query)
 
         # Get action suggestions and format metadata
-        action_suggestions = template_manager.get_action_suggestions(result.id, language)
+        action_suggestions = template_manager.get_action_suggestions(
+            result.id, language
+        )
         metadata_info = template_manager.format_metadata(result.metadata, language)
 
         # Create template context
@@ -104,7 +108,7 @@ class IntentDetectionTool(Toolkit):
             method=result.method.value,
             timestamp=result.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             metadata_info=metadata_info,
-            action_suggestions=action_suggestions
+            action_suggestions=action_suggestions,
         )
 
         return template_manager.render_result_template(context, language)
@@ -124,20 +128,22 @@ class IntentDetectionTool(Toolkit):
 
         # Tạo fallback result
         fallback_result = IntentResult(
-            id=error_template.get('fallback_intent', 'unknown'),
-            confidence=float(error_template.get('fallback_confidence', '0.1')),
+            id=error_template.get("fallback_intent", "unknown"),
+            confidence=float(error_template.get("fallback_confidence", "0.1")),
             method=DetectionMethod.FALLBACK,
             metadata={
-                'timeout_duration': '10s',
-                'original_query': query,
-                'error_type': 'timeout'
-            }
+                "timeout_duration": "10s",
+                "original_query": query,
+                "error_type": "timeout",
+            },
         )
 
         # Format như kết quả bình thường nhưng với thông tin timeout
         return self._format_result(fallback_result, query)
 
-    def _handle_general_error(self, query: str, language: str, error_message: str) -> str:
+    def _handle_general_error(
+        self, query: str, language: str, error_message: str
+    ) -> str:
         """
         Xử lý general error một cách gọn gàng và đẹp
 
@@ -153,21 +159,20 @@ class IntentDetectionTool(Toolkit):
 
         # Tạo fallback result
         fallback_result = IntentResult(
-            id=error_template.get('fallback_intent', 'unknown'),
-            confidence=float(error_template.get('fallback_confidence', '0.1')),
+            id=error_template.get("fallback_intent", "unknown"),
+            confidence=float(error_template.get("fallback_confidence", "0.1")),
             method=DetectionMethod.FALLBACK,
             metadata={
-                'error_message': error_message,
-                'original_query': query,
-                'error_type': 'general'
-            }
+                "error_message": error_message,
+                "original_query": query,
+                "error_type": "general",
+            },
         )
 
         # Format như kết quả bình thường nhưng với thông tin lỗi
         return self._format_result(fallback_result, query)
 
-
-    def get_tool_info(self) -> Dict[str, Any]:
+    def get_tool_info(self) -> Dict[str, str]:
         """
         Lấy thông tin về tool (dành cho debugging và monitoring)
 
@@ -176,13 +181,15 @@ class IntentDetectionTool(Toolkit):
         """
         return {
             "name": self.name,
-            "functions": list(self.functions.keys()),
-            "intent_service_available": self.intent_service is not None,
-            "version": "1.0.0"
+            "functions": str(list(self.functions.keys())),
+            "intent_service_available": str(self.intent_service is not None),
+            "version": "1.0.0",
         }
 
 
-def create_intent_detection_tool(intent_service: HybridIntentDetectionService) -> Toolkit:
+def create_intent_detection_tool(
+    intent_service: HybridIntentDetectionService,
+) -> Toolkit:
     """
     Factory function để tạo IntentDetectionTool
 

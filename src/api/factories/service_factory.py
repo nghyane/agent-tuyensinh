@@ -4,14 +4,18 @@ Service factory for FPT University Agent
 
 import os
 from typing import Optional
+
+from api.agents.fpt_agent import get_fpt_agent
+from core.application.services.hybrid_intent_service import (
+    HybridConfig,
+    HybridIntentDetectionService,
+)
+from infrastructure.caching.memory_cache import MemoryCacheService
+from infrastructure.embeddings import get_embedding_service
 from infrastructure.intent_detection.rule_based import RuleBasedDetectorImpl
 from infrastructure.intent_detection.rule_loader import ProductionRuleLoader
-from infrastructure.caching.memory_cache import MemoryCacheService
 from infrastructure.vector_stores.qdrant_store import QdrantVectorStore
-from infrastructure.embeddings import get_embedding_service
-from core.application.services.hybrid_intent_service import HybridIntentDetectionService, HybridConfig
 from shared.utils.text_processing import VietnameseTextProcessor
-from api.agents.fpt_agent import get_fpt_agent
 
 
 class ServiceFactory:
@@ -23,7 +27,9 @@ class ServiceFactory:
         self.intent_service = None
         self.fpt_agent = None
 
-    async def initialize_services(self, model_id: str = "gpt-4o", debug_mode: bool = False):
+    async def initialize_services(
+        self, model_id: str = "gpt-4o", debug_mode: bool = False
+    ):
         """Initialize all services"""
         print("🔧 Initializing FPT University Agent services...")
 
@@ -37,14 +43,16 @@ class ServiceFactory:
             rules = loader.load_rules()
             print(f"   ✅ Loaded {len(rules)} production rules")
 
-            rule_detector = RuleBasedDetectorImpl(rules=rules, text_processor=self.text_processor)
+            rule_detector = RuleBasedDetectorImpl(
+                rules=rules, text_processor=self.text_processor
+            )
 
             # Initialize vector store and embeddings
             vector_store = QdrantVectorStore(
                 url=os.getenv("QDRANT_URL", "http://localhost:6333"),
-                api_key=os.getenv("QDRANT_API_KEY")
+                api_key=os.getenv("QDRANT_API_KEY"),
             )
-            
+
             # Sử dụng global embedding service
             embedding_service = get_embedding_service()
 
@@ -53,7 +61,7 @@ class ServiceFactory:
                 rule_high_confidence_threshold=0.7,
                 rule_medium_confidence_threshold=0.3,
                 early_exit_threshold=0.8,
-                vector_top_k=3
+                vector_top_k=3,
             )
 
             self.intent_service = HybridIntentDetectionService(
@@ -62,7 +70,7 @@ class ServiceFactory:
                 embedding_service=embedding_service,
                 cache_service=self.cache_service,
                 text_processor=self.text_processor,
-                config=hybrid_config
+                config=hybrid_config,
             )
 
             # Create FPT agent

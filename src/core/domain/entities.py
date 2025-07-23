@@ -7,15 +7,22 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Pattern
 
-from shared.types import (
-    QueryText, IntentId, Confidence, Score, Metadata,
-    DetectionMethod, ConfidenceLevel, IntentCategory
+from shared.common_types import (
+    Confidence,
+    ConfidenceLevel,
+    DetectionMethod,
+    IntentCategory,
+    IntentId,
+    Metadata,
+    QueryText,
+    Score,
 )
 
 
 @dataclass(frozen=True)
 class IntentResult:
     """Core entity representing the result of intent detection"""
+
     id: IntentId
     confidence: Confidence
     method: DetectionMethod
@@ -41,7 +48,7 @@ class IntentResult:
         """Check if result has high confidence (>= 0.7)"""
         return self.confidence >= 0.7
 
-    def with_metadata(self, **kwargs) -> 'IntentResult':
+    def with_metadata(self, **kwargs) -> "IntentResult":
         """Create new result with additional metadata"""
         new_metadata = {**self.metadata, **kwargs}
         return IntentResult(
@@ -50,13 +57,14 @@ class IntentResult:
             method=self.method,
             category=self.category,
             metadata=new_metadata,
-            timestamp=self.timestamp
+            timestamp=self.timestamp,
         )
 
 
 @dataclass(frozen=True)
 class DetectionContext:
     """Context information for intent detection"""
+
     query: QueryText
     user_id: Optional[str] = None
     session_id: Optional[str] = None
@@ -68,6 +76,7 @@ class DetectionContext:
 @dataclass
 class IntentRule:
     """Rule-based intent detection rule"""
+
     intent_id: IntentId
     keywords: List[str]
     patterns: List[str]
@@ -78,7 +87,9 @@ class IntentRule:
     enabled: bool = True
     metadata: Metadata = field(default_factory=dict)
 
-    _compiled_patterns: Optional[List[Pattern]] = field(default=None, init=False, repr=False)
+    _compiled_patterns: Optional[List[Pattern]] = field(
+        default=None, init=False, repr=False
+    )
 
     def __post_init__(self):
         """Validate rule after initialization"""
@@ -98,7 +109,7 @@ class IntentRule:
                 compiled.append(re.compile(pattern, re.IGNORECASE | re.UNICODE))
             except re.error as e:
                 raise ValueError(f"Invalid regex pattern '{pattern}': {e}")
-        object.__setattr__(self, '_compiled_patterns', compiled)
+        object.__setattr__(self, "_compiled_patterns", compiled)
 
     @property
     def compiled_patterns(self) -> List[Pattern]:
@@ -148,6 +159,7 @@ class IntentRule:
 @dataclass(frozen=True)
 class RuleMatch:
     """Result of rule-based matching"""
+
     intent_id: IntentId
     score: Score
     matched_keywords: List[str]
@@ -160,6 +172,7 @@ class RuleMatch:
 @dataclass(frozen=True)
 class SearchCandidate:
     """Candidate result from vector search"""
+
     text: str
     intent_id: IntentId
     score: Score

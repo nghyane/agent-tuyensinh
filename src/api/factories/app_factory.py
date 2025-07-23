@@ -2,14 +2,16 @@
 App factory for FPT University Agent
 """
 
-from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from api.settings import api_settings
-from api.routes.v1_router import v1_router
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+
 from api.routes.base import base_router
 from api.routes.playground import create_playground_router
+from api.routes.v1_router import v1_router
+from api.settings import api_settings
+
 from .service_factory import ServiceFactory
 
 
@@ -26,8 +28,7 @@ class AppFactory:
         # Startup - initialize services
         print("🚀 Starting FPT University Agent API...")
         await self.service_factory.initialize_services(
-            model_id=api_settings.default_model,
-            debug_mode=False
+            model_id=api_settings.default_model, debug_mode=False
         )
 
         # Get agent instance once
@@ -35,6 +36,7 @@ class AppFactory:
 
         # Set global agent instance
         import api.routes
+
         api.routes.fpt_agent = agent
 
         # Create playground router after agent is initialized
@@ -71,7 +73,7 @@ class AppFactory:
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["*"]
+            expose_headers=["*"],
         )
 
         # Add v1 router after CORS middleware
