@@ -36,15 +36,6 @@ class ChatRequest(BaseModel):
         return v.strip()
 
 
-class ChatResponse(BaseModel):
-    """Chat response with Agno metrics and tool calls"""
-    response: str = Field(..., description="Agent response")
-    session_id: str = Field(..., description="Session identifier")
-    user_id: str = Field(..., description="User identifier")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Response timestamp")
-    metrics: Optional[Dict[str, Any]] = Field(None, description="Agent run metrics")
-    tool_calls: Optional[List[Dict[str, Any]]] = Field(None, description="Tool calls made during response")
-
 
 # Dependency injection
 async def get_agent() -> Agent:
@@ -60,53 +51,15 @@ async def get_agent() -> Agent:
 
 
 # Core chat functionality
-async def _process_chat_message(agent: Agent, message: str, user_id: str, session_id: Optional[str] = None) -> tuple[str, Optional[Dict[str, Any]], Optional[List[Dict[str, Any]]]]:
-    """Process chat message with proper error handling"""
-    try:
-        logger.info(f"Processing message for user {user_id}, session {session_id}")
-        
-        # Run agent with timeout protection
-        response = await asyncio.wait_for(
-            agent.arun(message, user_id=user_id, session_id=session_id),
-            timeout=60.0
-        )
-        
-        # Handle response according to Agno docs
-        if hasattr(response, 'content'):
-            response_content = response.content
-            metrics = getattr(response, 'metrics', None)
-            tool_calls = getattr(response, 'tool_calls', None)
-        elif hasattr(response, '__aiter__'):
-            response_content = ""
-            metrics = None
-            tool_calls = None
-            async for chunk in response:
-                if hasattr(chunk, 'content'):
-                    response_content += chunk.content
-                if metrics is None and hasattr(chunk, 'metrics'):
-                    metrics = chunk.metrics
-                if tool_calls is None and hasattr(chunk, 'tool_calls'):
-                    tool_calls = chunk.tool_calls
-        else:
-            response_content = str(response)
-            metrics = None
-            tool_calls = None
-            
-        logger.info(f"Successfully processed message for user {user_id}")
-        return response_content, metrics, tool_calls
-        
-    except asyncio.TimeoutError:
-        logger.error(f"Timeout processing message for user {user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="Request timeout - agent took too long to respond"
-        )
-    except Exception as e:
-        logger.error(f"Error processing message for user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Chat processing failed: {str(e)}"
-        )
+async def _process_chat_message(agent: Agent, message: str, user_id: str, session_id: Optional[str] = None):
+    """Process chat message using Agno's built-in handling"""
+    logger.info(f"Processing message for user {user_id}, session {session_id}")
+    
+    # Run agent with Agno's built-in error handling
+    response = await agent.arun(message, user_id=user_id, session_id=session_id)
+    
+    logger.info(f"Successfully processed message for user {user_id}")
+    return response
 
 
 def _format_sse_data(data: dict) -> str:
@@ -115,7 +68,7 @@ def _format_sse_data(data: dict) -> str:
 
 
 # API Endpoints
-@chat_router.post("/send", response_model=ChatResponse)
+@chat_router.post("/send")
 async def send_message(chat_request: ChatRequest, agent: Agent = Depends(get_agent)):
     """Send a message to the FPT University Agent"""
     if not chat_request.session_id:
@@ -124,20 +77,15 @@ async def send_message(chat_request: ChatRequest, agent: Agent = Depends(get_age
             detail="session_id is required for conversation continuity"
         )
     
-    response_content, metrics, tool_calls = await _process_chat_message(
+    # Use Agno's built-in response directly
+    response = await _process_chat_message(
         agent=agent,
         message=chat_request.message,
         user_id=chat_request.user_id,
         session_id=chat_request.session_id
     )
     
-    return ChatResponse(
-        response=response_content,
-        session_id=chat_request.session_id,
-        user_id=chat_request.user_id,
-        metrics=metrics,
-        tool_calls=tool_calls
-    )
+    return response
 
 
 @chat_router.post("/stream")
@@ -151,74 +99,18 @@ async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_a
     
     async def generate_stream():
         """Generate Server-Sent Events stream using Agno's built-in streaming"""
-        try:
-            # Use Agno's built-in streaming with tool calls
-            response_stream = await agent.arun(
-                chat_request.message, 
-                user_id=chat_request.user_id, 
-                session_id=chat_request.session_id,
-                stream=True,
-                stream_intermediate_steps=True
-            )
-            
-            async for event in response_stream:
-                # Handle different event types from Agno
-                if hasattr(event, 'event'):
-                    if event.event == "RunResponseContent":
-                        yield _format_sse_data({
-                            "type": "content",
-                            "content": event.content,
-                            "session_id": chat_request.session_id,
-                            "user_id": chat_request.user_id,
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-                    elif event.event == "ToolCallStarted":
-                        yield _format_sse_data({
-                            "type": "tool_call_start",
-                            "tool_name": event.tool.name if hasattr(event.tool, 'name') else 'unknown',
-                            "tool_args": event.tool.args if hasattr(event.tool, 'args') else {},
-                            "session_id": chat_request.session_id,
-                            "user_id": chat_request.user_id,
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-                    elif event.event == "ToolCallCompleted":
-                        yield _format_sse_data({
-                            "type": "tool_call_complete",
-                            "tool_name": event.tool.name if hasattr(event.tool, 'name') else 'unknown',
-                            "tool_result": str(event.tool.result) if hasattr(event.tool, 'result') else '',
-                            "session_id": chat_request.session_id,
-                            "user_id": chat_request.user_id,
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-                    elif event.event == "RunResponseCompleted":
-                        yield _format_sse_data({
-                            "type": "final",
-                            "session_id": chat_request.session_id,
-                            "user_id": chat_request.user_id,
-                            "metrics": getattr(event, 'metrics', None),
-                            "tool_calls": getattr(event, 'tool_calls', None),
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-                else:
-                    # Fallback for direct content
-                    if hasattr(event, 'content') and event.content:
-                        yield _format_sse_data({
-                            "type": "content",
-                            "content": event.content,
-                            "session_id": chat_request.session_id,
-                            "user_id": chat_request.user_id,
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-                        
-        except Exception as e:
-            logger.error(f"Error in streaming: {str(e)}")
-            yield _format_sse_data({
-                "type": "error",
-                "error": str(e),
-                "session_id": chat_request.session_id,
-                "user_id": chat_request.user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+        # Use Agno's built-in streaming with tool calls
+        response_stream = await agent.arun(
+            chat_request.message, 
+            user_id=chat_request.user_id, 
+            session_id=chat_request.session_id,
+            stream=True,
+            stream_intermediate_steps=True
+        )
+        
+        async for event in response_stream:
+            # Use Agno's built-in event data directly without any formatting
+            yield _format_sse_data(event)
     
     return StreamingResponse(
         generate_stream(),
@@ -230,4 +122,72 @@ async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_a
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "*",
         }
-    ) 
+    )
+
+
+@chat_router.get("/memory/{user_id}")
+async def get_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
+    """Get user memories from the agent's memory system"""
+    if not hasattr(agent, 'memory') or agent.memory is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Memory system not available"
+        )
+    
+    # Use Agno's built-in memory API directly
+    memories = agent.memory.get_user_memories(user_id=user_id)  # type: ignore
+    
+    # Return Agno memory data directly
+    return {
+        "memories": memories,
+        "count": len(memories),
+        "user_id": user_id
+    }
+
+
+@chat_router.delete("/memory/{user_id}")
+async def clear_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
+    """Clear all memories for a specific user using standard Agno method"""
+    if not hasattr(agent, 'memory') or agent.memory is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Memory system not available"
+        )
+    
+    # Use Agno's built-in clear method directly
+    agent.memory.clear()
+    
+    return {"message": f"Memories cleared for user {user_id}"}
+
+
+@chat_router.get("/sessions/{user_id}")
+async def get_user_sessions(user_id: str, agent: Agent = Depends(get_agent)):
+    """Get all session IDs for a specific user using standard Agno method"""
+    if not hasattr(agent, 'storage') or agent.storage is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Storage system not available"
+        )
+    
+    # Use Agno's built-in storage API directly
+    sessions = agent.storage.get_all_session_ids(user_id)
+    
+    return {
+        "sessions": sessions,
+        "count": len(sessions),
+        "user_id": user_id
+    }
+
+
+@chat_router.get("/history/{session_id}")
+async def get_session_history(session_id: str, agent: Agent = Depends(get_agent)):
+    """Get conversation history for a specific session using standard Agno method"""
+    # Use Agno's built-in method directly
+    messages = agent.get_messages_for_session(session_id=session_id)
+    
+    # Return Agno message data directly
+    return {
+        "history": messages,
+        "session_id": session_id,
+        "count": len(messages)
+    } 
