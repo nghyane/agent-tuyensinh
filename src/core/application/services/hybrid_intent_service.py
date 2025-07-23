@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from core.domain.entities import IntentResult, DetectionContext, RuleMatch, SearchCandidate
 from infrastructure.intent_detection.rule_based import RuleBasedDetectorImpl
 from infrastructure.vector_stores.qdrant_store import QdrantVectorStore
-from infrastructure.embeddings.openai_embeddings import OpenAIEmbeddingService
+from agno.embedder.openai import OpenAIEmbedder
 from infrastructure.caching.memory_cache import MemoryCacheService
 from shared.types import DetectionMethod, QueryText, IntentId
 from shared.utils.text_processing import VietnameseTextProcessor
@@ -23,31 +23,24 @@ class IntentDetectionError(Exception):
     """Base exception for intent detection errors"""
     pass
 
-class VectorSearchError(IntentDetectionError):
-    """Exception for vector search failures"""
-    pass
-
 class RuleDetectionError(IntentDetectionError):
-    """Exception for rule-based detection failures"""
+    """Exception for rule-based detection errors"""
     pass
 
+class VectorSearchError(IntentDetectionError):
+    """Exception for vector search errors"""
+    pass
 
 @dataclass
 class HybridConfig:
-    """Optimized configuration for hybrid intent detection"""
-    # Rule-based thresholds - Aligned with old system for better results
-    rule_high_confidence_threshold: float = 0.7   # Matched with old system (was 0.75)
-    rule_medium_confidence_threshold: float = 0.3  # Matched with old system (was 0.4)
-    early_exit_threshold: float = 0.8  # Reduced from 0.85 for better detection
-
-    # Vector search thresholds
-    vector_confidence_threshold: float = 0.6  # Reduced from 0.65 for better recall
-    vector_top_k: int = 3  # Reduced for performance
-
-    # Caching optimization
+    """Configuration for hybrid intent detection"""
+    rule_high_confidence_threshold: float = 0.7
+    rule_medium_confidence_threshold: float = 0.3
+    early_exit_threshold: float = 0.8
+    vector_top_k: int = 3
+    vector_confidence_threshold: float = 0.6
+    cache_min_confidence: float = 0.8
     enable_caching: bool = True
-    cache_ttl_seconds: int = 600  # Longer cache for stable results
-    cache_min_confidence: float = 0.5  # Only cache good results
 
 
 class HybridIntentDetectionService:
@@ -59,7 +52,7 @@ class HybridIntentDetectionService:
         self,
         rule_detector: RuleBasedDetectorImpl,
         vector_store: Optional[QdrantVectorStore] = None,
-        embedding_service: Optional[OpenAIEmbeddingService] = None,
+        embedding_service: Optional[OpenAIEmbedder] = None,
         cache_service: Optional[MemoryCacheService] = None,
         text_processor: Optional[VietnameseTextProcessor] = None,
         config: Optional[HybridConfig] = None
@@ -75,8 +68,7 @@ class HybridIntentDetectionService:
         self.vector_search_enabled = (
             self.vector_store and 
             self.vector_store.available and 
-            self.embedding_service and 
-            self.embedding_service.available
+            self.embedding_service
         )
         
         print(f"🔧 Hybrid service initialized:")
@@ -144,7 +136,7 @@ class HybridIntentDetectionService:
             # Generate query embedding with timeout
             if not self.embedding_service:
                 return None
-            query_embedding = await self.embedding_service.embed_text(query)
+            query_embedding = self.embedding_service.get_embedding(query)
             if not query_embedding:
                 return None
 
@@ -164,7 +156,7 @@ class HybridIntentDetectionService:
             best_candidate = candidates[0]
 
             # Apply confidence boost for very high scores
-            adjusted_confidence = best_candidate.score  # Use score directly, not normalized_score
+            adjusted_confidence = best_candidate.score  # Use score directly
             if best_candidate.score >= 0.9:
                 adjusted_confidence = min(0.95, adjusted_confidence * 1.1)
 
@@ -173,110 +165,90 @@ class HybridIntentDetectionService:
                 confidence=adjusted_confidence,
                 method=DetectionMethod.VECTOR,
                 metadata={
-                    "vector_score": best_candidate.score,
-                    "source_text": best_candidate.text[:100],  # Truncate for performance
-                    "candidates_count": len(candidates),
-                    "confidence_adjusted": adjusted_confidence != best_candidate.score
+                    "score": best_candidate.score,
+                    "metadata": best_candidate.metadata
                 }
             )
 
         except Exception as e:
-            logger.error(f"Vector search failed: {e}")
-            raise VectorSearchError(f"Vector search failed: {e}") from e
-    
+            logger.warning(f"Vector search error: {e}")
+            return None
+
+    def _select_best_result(self, rule_match: Optional[RuleMatch], vector_result: Optional[IntentResult]) -> IntentResult:
+        """Select the best result between rule-based and vector search"""
+        # If both are None, return fallback
+        if rule_match is None and vector_result is None:
+            return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
+
+        # If only vector_result exists
+        if rule_match is None and vector_result is not None:
+            return vector_result
+
+        # If only rule_match exists
+        if rule_match is not None and vector_result is None:
+            return IntentResult(
+                id=rule_match.intent_id,
+                confidence=rule_match.score,
+                method=DetectionMethod.RULE,
+                metadata={"rule_match": rule_match.rule_metadata}
+            )
+
+        # Both exist, compare confidence scores
+        if rule_match is not None and vector_result is not None:
+            if rule_match.score >= vector_result.confidence:
+                return IntentResult(
+                    id=rule_match.intent_id,
+                    confidence=rule_match.score,
+                    method=DetectionMethod.RULE,
+                    metadata={"rule_match": rule_match.rule_metadata}
+                )
+            else:
+                return vector_result
+
+        # Fallback case
+        return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
+
+    def _create_fallback_result(self, confidence: float, method: DetectionMethod) -> IntentResult:
+        """Create fallback result when detection fails"""
+        return IntentResult(
+            id="unknown",
+            confidence=confidence,
+            method=method,
+            metadata={"fallback": True}
+        )
+
     async def _get_cached_result(self, query: str) -> Optional[IntentResult]:
         """Get cached result for query"""
         if not self.cache_service:
             return None
-        
+
         cache_key = self._generate_cache_key(query)
         cached_data = await self.cache_service.get(cache_key)
         
         if cached_data:
             return IntentResult(**cached_data)
-        
         return None
-    
+
     async def _cache_result(self, query: str, result: IntentResult) -> None:
-        """Cache result for query"""
-        if not self.cache_service or not self.config.enable_caching:
+        """Cache intent detection result"""
+        if not self.cache_service:
             return
-        
+
         cache_key = self._generate_cache_key(query)
         cache_data = {
             "id": result.id,
             "confidence": result.confidence,
             "method": result.method,
+            "category": result.category,
             "metadata": result.metadata,
             "timestamp": result.timestamp
         }
-        
-        await self.cache_service.set(
-            cache_key, 
-            cache_data, 
-            ttl_seconds=self.config.cache_ttl_seconds
-        )
-    
+        await self.cache_service.set(cache_key, cache_data, ttl_seconds=3600)  # 1 hour TTL
+
     def _generate_cache_key(self, query: str) -> str:
         """Generate cache key for query"""
-        normalized_query = self.text_processor.normalize_vietnamese(query)
-        return f"intent:{hashlib.md5(normalized_query.encode()).hexdigest()}"
-    
-    def _select_best_result(self, rule_match: Optional[Any], vector_result: Optional[IntentResult]) -> IntentResult:
-        """
-        Select the best result from rule-based and vector search
-        Optimized logic with clear priority rules
-        """
-        # Priority 1: High confidence rule match (early exit)
-        if rule_match and rule_match.score >= self.config.early_exit_threshold:
-            return self._create_rule_result(rule_match, DetectionMethod.RULE)
-
-        # Priority 2: High confidence vector result
-        if vector_result and vector_result.confidence >= self.config.vector_confidence_threshold:
-            # If both are high confidence, prefer the higher one
-            if rule_match and rule_match.score >= self.config.rule_high_confidence_threshold:
-                if vector_result.confidence > rule_match.score:
-                    return vector_result
-                else:
-                    return self._create_rule_result(rule_match, DetectionMethod.HYBRID)
-            return vector_result
-
-        # Priority 3: High confidence rule match
-        if rule_match and rule_match.score >= self.config.rule_high_confidence_threshold:
-            return self._create_rule_result(rule_match, DetectionMethod.RULE)
-
-        # Priority 4: Medium confidence rule match
-        if rule_match and rule_match.score >= self.config.rule_medium_confidence_threshold:
-            return self._create_rule_result(rule_match, DetectionMethod.RULE)
-
-        # Priority 5: Any vector result
-        if vector_result:
-            return vector_result
-
-        # Final fallback
-        return self._create_fallback_result(0.2, DetectionMethod.FALLBACK)
-
-    def _create_rule_result(self, rule_match: Any, method: DetectionMethod) -> IntentResult:
-        """Create IntentResult from rule match"""
-        return IntentResult(
-            id=rule_match.intent_id,
-            confidence=rule_match.score,
-            method=method,
-            metadata={
-                "matched_keywords": rule_match.matched_keywords,
-                "matched_patterns": rule_match.matched_patterns,
-                "rule_weight": rule_match.weight
-            }
-        )
-
-    def _create_fallback_result(self, confidence: float, method: DetectionMethod) -> IntentResult:
-        """Create fallback intent result"""
-        return IntentResult(
-            id="unknown",
-            confidence=confidence,
-            method=method,
-            metadata={"fallback": True, "reason": "no_intent_detected"}
-        )
+        query_hash = hashlib.md5(query.encode()).hexdigest()
+        return f"intent_detection:{query_hash}"
     
     async def get_performance_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""

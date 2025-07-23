@@ -14,52 +14,51 @@ from shared.types import Metadata
 class QdrantVectorStore:
     """
     Qdrant vector store implementation for intent examples
+    Tận dụng tối đa các tính năng có sẵn của QdrantClient
     """
     
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 6333,
+        url: str = "http://localhost:6333",
+        api_key: Optional[str] = None,
         collection_name: str = "intent_examples_python_hybrid",
         vector_size: int = 1536,
         distance: Distance = Distance.COSINE
     ):
-        self.host = host
-        self.port = port
         self.collection_name = collection_name
         self.vector_size = vector_size
         self.distance = distance
         
         try:
-            self.client = QdrantClient(host=host, port=port)
+            # Khởi tạo QdrantClient với URL trực tiếp
+            self.client = QdrantClient(
+                url=url,
+                api_key=api_key or os.getenv("QDRANT_API_KEY")
+            )
+            
+            # Tự động tạo collection nếu chưa tồn tại
             self._ensure_collection()
             self.available = True
-            print(f"✅ Qdrant connected: {host}:{port}")
+            
+            print(f"✅ Qdrant connected: {url}")
+            
         except Exception as e:
             print(f"❌ Qdrant connection failed: {e}")
             self.available = False
     
     def _ensure_collection(self):
-        """Ensure collection exists"""
-        try:
-            collections = self.client.get_collections()
-            collection_names = [col.name for col in collections.collections]
-            
-            if self.collection_name not in collection_names:
-                self.client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=VectorParams(
-                        size=self.vector_size,
-                        distance=self.distance
-                    )
+        """Tự động tạo collection nếu chưa tồn tại"""
+        if not self.client.collection_exists(self.collection_name):
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(
+                    size=self.vector_size,
+                    distance=self.distance
                 )
-                print(f"✅ Created collection: {self.collection_name}")
-            else:
-                print(f"✅ Collection exists: {self.collection_name}")
-                
-        except Exception as e:
-            print(f"❌ Collection setup failed: {e}")
-            raise
+            )
+            print(f"✅ Created collection: {self.collection_name}")
+        else:
+            print(f"✅ Collection exists: {self.collection_name}")
     
     async def search(
         self, 
@@ -67,11 +66,12 @@ class QdrantVectorStore:
         top_k: int = 5,
         score_threshold: float = 0.6
     ) -> List[SearchCandidate]:
-        """Search for similar vectors"""
+        """Search for similar vectors using QdrantClient's search method"""
         if not self.available:
             return []
         
         try:
+            # Sử dụng trực tiếp QdrantClient.search
             search_result = self.client.search(
                 collection_name=self.collection_name,
                 query_vector=query_vector,
@@ -79,18 +79,17 @@ class QdrantVectorStore:
                 score_threshold=score_threshold
             )
             
-            candidates = []
-            for point in search_result:
-                metadata = point.payload or {}
-                
-                candidate = SearchCandidate(
-                    text=metadata.get("text", ""),
-                    intent_id=metadata.get("intent_id", "unknown"),
+            # Chuyển đổi kết quả thành SearchCandidate
+            candidates = [
+                SearchCandidate(
+                    text=point.payload.get("text", "") if point.payload else "",
+                    intent_id=point.payload.get("intent_id", "unknown") if point.payload else "unknown",
                     score=point.score,
-                    metadata=metadata,
+                    metadata=point.payload or {},
                     source="qdrant"
                 )
-                candidates.append(candidate)
+                for point in search_result
+            ]
             
             print(f"🔍 Qdrant search: {len(candidates)} candidates found")
             return candidates
@@ -105,23 +104,22 @@ class QdrantVectorStore:
         vectors: List[List[float]], 
         metadata: List[Metadata]
     ) -> None:
-        """Add documents to vector store"""
+        """Add documents using QdrantClient's upsert method"""
         if not self.available:
             return
         
         try:
-            points = []
-            for i, (text, vector, meta) in enumerate(zip(texts, vectors, metadata)):
-                point = PointStruct(
+            # Tạo points với ID tự động
+            points = [
+                PointStruct(
                     id=i,
                     vector=vector,
-                    payload={
-                        "text": text,
-                        **meta
-                    }
+                    payload={"text": text, **meta}
                 )
-                points.append(point)
+                for i, (text, vector, meta) in enumerate(zip(texts, vectors, metadata))
+            ]
             
+            # Sử dụng trực tiếp QdrantClient.upsert
             self.client.upsert(
                 collection_name=self.collection_name,
                 points=points
@@ -133,7 +131,7 @@ class QdrantVectorStore:
             print(f"❌ Failed to add documents to Qdrant: {e}")
     
     async def get_collection_info(self) -> Dict[str, Any]:
-        """Get collection information"""
+        """Get collection information using QdrantClient's get_collection"""
         if not self.available:
             return {"available": False}
         
@@ -149,3 +147,20 @@ class QdrantVectorStore:
         except Exception as e:
             print(f"❌ Failed to get collection info: {e}")
             return {"available": False, "error": str(e)}
+    
+    def collection_exists(self) -> bool:
+        """Check if collection exists using QdrantClient's collection_exists"""
+        return self.available and self.client.collection_exists(self.collection_name)
+    
+    def delete_collection(self) -> bool:
+        """Delete collection using QdrantClient's delete_collection"""
+        if not self.available:
+            return False
+        
+        try:
+            self.client.delete_collection(self.collection_name)
+            print(f"✅ Deleted collection: {self.collection_name}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to delete collection: {e}")
+            return False

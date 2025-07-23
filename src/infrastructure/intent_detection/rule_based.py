@@ -2,12 +2,12 @@
 Rule-based intent detection implementation
 """
 
+import re
 import time
 from typing import List, Optional, Dict, Any
-
-from core.domain.entities import RuleMatch, IntentRule
-from shared.types import QueryText, IntentId
-from shared.utils.text_processing import VietnameseTextProcessor
+from src.core.domain.entities import RuleMatch, IntentRule
+from src.shared.types import QueryText, IntentId
+from src.shared.utils.text_processing import VietnameseTextProcessor
 
 
 class RuleBasedDetectorImpl:
