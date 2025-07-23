@@ -22,7 +22,7 @@ class ApiSettings(BaseSettings):
     # Server settings
     host: str = "0.0.0.0"
     port: int = 8000
-    reload: bool = True
+    reload: bool = False
 
     # CORS origin list to allow requests from
     cors_origin_list: List[str] = Field(default_factory=list, validate_default=True)
