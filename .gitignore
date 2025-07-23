@@ -50,3 +50,6 @@ temp/
 .venv/
 __pycache__/
 *.pyc
+venv/
+.serena/
+.vscode/settings.json
