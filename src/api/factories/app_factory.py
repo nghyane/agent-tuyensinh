@@ -31,7 +31,7 @@ class AppFactory:
         )
 
         # Get agent instance once
-        agent = self.service_factory.get_agent()
+        agent = self.service_factory.get_fpt_agent()
 
         # Set global agent instance
         import api.routes
