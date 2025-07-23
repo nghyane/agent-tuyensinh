@@ -14,6 +14,7 @@ tiktoken==0.9.0
 
 # Vector database and embeddings
 pgvector==0.4.1
+qdrant-client==1.15.0
 
 # Agno framework for RAG
 agno==1.7.5
