@@ -1,5 +1,5 @@
 # Core dependencies for FPT University Agent - Refactored
-# Python 3.9+
+# Python 3.12+
 
 # Async framework
 asyncio-mqtt>=0.11.0
@@ -30,9 +30,16 @@ aiohttp>=3.8.0
 
 # Vector stores
 qdrant-client>=1.6.0  # For vector search
+numpy>=1.24.0  # Required by qdrant-client
+protobuf>=4.21.0  # Required by qdrant-client
+grpcio>=1.50.0  # Required by qdrant-client
 
 # Embeddings
 openai>=1.0.0  # For OpenAI embeddings
+
+# Database ORM and PostgreSQL
+sqlalchemy>=2.0.0  # For database operations and ORM
+psycopg[binary]>=3.1.0  # PostgreSQL adapter for Python
 
 # Caching
 # redis>=4.5.0  # Uncomment for Redis caching

@@ -9,8 +9,8 @@ from typing import Optional
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
 from agno.tools.reasoning import ReasoningTools
-from agno.storage.sqlite import SqliteStorage
-from agno.memory.v2.db.sqlite import SqliteMemoryDb
+from agno.storage.postgres import PostgresStorage
+from agno.memory.v2.db.postgres import PostgresMemoryDb
 from agno.memory.v2.memory import Memory
 
 from agno_integration.intent_tool import create_intent_detection_tool
@@ -51,17 +51,22 @@ def get_fpt_agent(
     # Add University API tool for accessing public university data
     tools.append(create_university_api_tool())
 
+    # Get database URL from environment variable
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable is required for PostgreSQL storage")
+    
     # Storage for agent sessions
-    storage = SqliteStorage(
+    storage = PostgresStorage(
         table_name="fpt_agent_sessions",
-        db_file="tmp/fpt_agent.db"
+        db_url=db_url
     )
 
     # Memory for long-term user memory
     memory = Memory(
-        db=SqliteMemoryDb(
+        db=PostgresMemoryDb(
             table_name="fpt_user_memories",
-            db_file="tmp/fpt_memory.db"
+            db_url=db_url
         ),
         delete_memories=True,
         clear_memories=True,

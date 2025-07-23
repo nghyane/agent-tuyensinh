@@ -37,6 +37,8 @@ docker-stop:
 	docker-compose down
 
 
+
+
 # Show project structure
 structure:
 	@echo "📁 Project structure:"
