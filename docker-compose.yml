@@ -68,36 +68,6 @@ services:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6334
     restart: unless-stopped
-    # healthcheck:
-    #   test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:6333/collections || exit 1"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-
-  # Development service
-  fpt-agent-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: fpt-agent-dev
-    environment:
-      - FPT_AGENT_ENVIRONMENT=development
-      - FPT_AGENT_LOG_LEVEL=DEBUG
-      - DATABASE_URL=postgresql+psycopg://ai:ai@postgres:5432/ai
-      - FPT_AGENT_CACHE_BACKEND=memory
-      - FPT_AGENT_VECTOR_BACKEND=memory
-    volumes:
-      - .:/app
-      - ./logs:/app/logs
-    ports:
-      - "8001:8000"
-    command: python full_demo.py
-    depends_on:
-      postgres:
-        condition: service_healthy
-    profiles:
-      - dev
 
 volumes:
   redis_data:

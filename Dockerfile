@@ -6,10 +6,16 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install minimal system dependencies (only if needed)
+# Install Poetry and system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install poetry
+
+# Configure Poetry
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VENV_IN_PROJECT=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
 # Create app user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
@@ -17,11 +23,11 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Set work directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy Poetry files first for better caching
+COPY pyproject.toml poetry.lock* ./
 
-# Install Python dependencies with optimizations
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+# Install dependencies
+RUN poetry install --only=main --no-root
 
 # Copy application code
 COPY src/ ./src/
@@ -35,10 +41,10 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)"
+    CMD poetry run python -c "import sys; sys.exit(0)"
 
 # Default command
-CMD ["python", "-m", "src.api.main"]
+CMD ["poetry", "run", "python", "-m", "src.api.main"]
 
 # Production stage
 FROM base AS production
@@ -50,4 +56,4 @@ ENV FPT_AGENT_ENVIRONMENT=production
 EXPOSE 8000
 
 # Run application
-CMD ["python", "-m", "src.api.main"]
+CMD ["poetry", "run", "python", "-m", "src.api.main"]
