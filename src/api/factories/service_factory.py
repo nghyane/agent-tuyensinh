@@ -2,7 +2,7 @@
 Service factory for FPT University Agent
 """
 
-
+import os
 from infrastructure.intent_detection.rule_based import RuleBasedDetectorImpl
 from infrastructure.intent_detection.rule_loader import ProductionRuleLoader
 from infrastructure.caching.memory_cache import MemoryCacheService
@@ -39,7 +39,11 @@ class ServiceFactory:
             rule_detector = RuleBasedDetectorImpl(rules=rules, text_processor=self.text_processor)
 
             # Initialize vector store and embeddings
-            vector_store = QdrantVectorStore()
+            vector_store = QdrantVectorStore(
+                host=os.getenv("QDRANT_HOST", "localhost"),
+                port=int(os.getenv("QDRANT_PORT", "6333")),
+            )
+            
             embedding_service = OpenAIEmbeddingService()
 
             # Create hybrid intent service
