@@ -262,6 +262,71 @@ class UniversityApiClient:
         else:
             return Result.error(response.error_message or "Unknown error")
 
+    async def get_tuition_list(
+        self,
+        program_code: Optional[str] = None,
+        campus_code: Optional[str] = None,
+        department_code: Optional[str] = None,
+        year: int = 2025,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Result[Dict[str, Any]]:
+        """Get tuition list with optional filters"""
+        params: Dict[str, Union[int, str]] = {
+            "year": max(min(year, 2030), 2020),
+            "limit": min(max(limit, 1), 100),
+            "offset": max(offset, 0),
+        }
+
+        if program_code:
+            params["program_code"] = program_code
+        if campus_code:
+            params["campus_code"] = campus_code
+        if department_code:
+            params["department_code"] = department_code
+
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.TUITION.value, params=params
+        )
+
+        if response.success:
+            return Result.ok(
+                {
+                    "tuition_records": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
+    async def get_tuition_details(self, tuition_id: str) -> Result[Dict[str, Any]]:
+        """Get specific tuition record details"""
+        response = await self._make_request(
+            "GET", f"{UniversityApiEndpoint.TUITION.value}/{tuition_id}"
+        )
+
+        if response.success:
+            return Result.ok(response.data or {})
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
+    async def get_campus_tuition_summary(
+        self, campus_id: str, year: int = 2025
+    ) -> Result[Dict[str, Any]]:
+        """Get campus tuition summary with programs and statistics"""
+        params: Dict[str, Union[int, str]] = {"year": max(min(year, 2030), 2020)}
+
+        response = await self._make_request(
+            "GET",
+            f"{UniversityApiEndpoint.TUITION_CAMPUS.value}/{campus_id}",
+            params=params,
+        )
+
+        if response.success:
+            return Result.ok(response.data or {})
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
     async def close(self):
         """Close aiohttp session"""
         if self._session and not self._session.closed:

@@ -13,6 +13,7 @@ from shared.utils.university_formatters import (
     DepartmentFormatter,
     ProgramFormatter,
 )
+from shared.utils.tuition_formatter import TuitionFormatter
 
 
 class UniversityApiTool(Toolkit):
@@ -32,6 +33,7 @@ class UniversityApiTool(Toolkit):
         self.department_formatter = DepartmentFormatter()
         self.program_formatter = ProgramFormatter()
         self.campus_formatter = CampusFormatter()
+        self.tuition_formatter = TuitionFormatter()
 
         # Register all methods as tools
         super().__init__(
@@ -42,6 +44,9 @@ class UniversityApiTool(Toolkit):
                 self.get_program_details,
                 self.get_campuses,
                 self.get_campus_details,
+                self.get_tuition_list,
+                self.get_tuition_details,
+                self.get_campus_tuition_summary,
             ],
         )
 
@@ -169,6 +174,107 @@ class UniversityApiTool(Toolkit):
             return self.campus_formatter.format_campus_details(campus, year)
         else:
             return f"❌ **Lỗi khi lấy chi tiết campus**\n\n" f"{result.error_message}"
+
+    async def get_tuition_list(
+        self,
+        program_code: Optional[str] = None,
+        campus_code: Optional[str] = None,
+        department_code: Optional[str] = None,
+        year: int = 2025,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> str:
+        """
+        Lấy danh sách học phí của FPT University với các bộ lọc tùy chọn
+
+        Args:
+            program_code: Mã chương trình để lọc (optional)
+            campus_code: Mã campus để lọc (optional)
+            department_code: Mã khoa để lọc (optional)
+            year: Năm để lấy thông tin học phí (2020-2030)
+            limit: Số lượng kết quả tối đa (1-100)
+            offset: Vị trí bắt đầu lấy dữ liệu
+
+        Returns:
+            Danh sách học phí được format đẹp
+        """
+        result = await self.client.get_tuition_list(
+            program_code=program_code,
+            campus_code=campus_code,
+            department_code=department_code,
+            year=year,
+            limit=limit,
+            offset=offset,
+        )
+
+        if result.is_ok():
+            data = result.data or {}
+            tuition_records = data.get("tuition_records", [])
+            meta = data.get("meta", {})
+
+            filters = {}
+            if program_code:
+                filters["program_code"] = program_code
+            if campus_code:
+                filters["campus_code"] = campus_code
+            if department_code:
+                filters["department_code"] = department_code
+            if year:
+                filters["year"] = str(year)
+
+            return self.tuition_formatter.format_tuition_list(
+                tuition_records, meta, filters
+            )
+        else:
+            return (
+                f"❌ **Lỗi khi lấy thông tin học phí**\n\n"
+                f"{result.error_message}"
+            )
+
+    async def get_tuition_details(self, tuition_id: str) -> str:
+        """
+        Lấy chi tiết một bản ghi học phí cụ thể theo ID
+
+        Args:
+            tuition_id: UUID của bản ghi học phí
+
+        Returns:
+            Chi tiết học phí được format đẹp
+        """
+        result = await self.client.get_tuition_details(tuition_id)
+
+        if result.is_ok():
+            tuition = result.data or {}
+            return self.tuition_formatter.format_tuition_details(tuition)
+        else:
+            return (
+                f"❌ **Lỗi khi lấy chi tiết học phí**\n\n"
+                f"{result.error_message}"
+            )
+
+    async def get_campus_tuition_summary(self, campus_id: str, year: int = 2025) -> str:
+        """
+        Lấy tổng hợp học phí của một campus cụ thể theo ID
+
+        Args:
+            campus_id: UUID của campus
+            year: Năm để lấy thông tin học phí (2020-2030)
+
+        Returns:
+            Tổng hợp học phí campus được format đẹp
+        """
+        result = await self.client.get_campus_tuition_summary(campus_id, year)
+
+        if result.is_ok():
+            campus_data = result.data or {}
+            return self.tuition_formatter.format_campus_tuition_summary(
+                campus_data, year
+            )
+        else:
+            return (
+                f"❌ **Lỗi khi lấy tổng hợp học phí campus**\n\n"
+                f"{result.error_message}"
+            )
 
     async def close(self):
         """Close API client session"""

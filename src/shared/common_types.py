@@ -140,6 +140,8 @@ class UniversityApiEndpoint(Enum):
     PROGRAMS = "/api/v1/programs"
     CAMPUSES = "/api/v1/campuses"
     CAMPUSES_SUMMARY = "/api/v1/campuses/summary"
+    TUITION = "/api/v1/tuition"
+    TUITION_CAMPUS = "/api/v1/tuition/campus"
 
 
 @dataclass

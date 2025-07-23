@@ -48,7 +48,7 @@ def get_fpt_agent(
 
     # Create tools for the agent
     tools: List[Any] = []
-    tools.append(ReasoningTools(add_instructions=True))
+    # tools.append(ReasoningTools(add_instructions=True))
 
     # Add intent detection tool if service is provided
     if intent_service:
@@ -60,21 +60,21 @@ def get_fpt_agent(
     # Add knowledge base tools if RAG is enabled
     if enable_rag:
         try:
-            knowledge_manager = create_fpt_knowledge_base()
+            knowledge_base = create_fpt_knowledge_base()
 
             # Kiểm tra xem knowledge base có tồn tại không
-            if not knowledge_manager.exists():
+            if not knowledge_base.exists():
                 print("📚 Knowledge base not found, creating new one...")
-                knowledge_manager.load_knowledge_base(recreate=True)
+                knowledge_base.load(recreate=True)
 
             # Tạo KnowledgeTools với Qdrant
             knowledge_tools = KnowledgeTools(
-                knowledge=knowledge_manager.knowledge_base,
-                think=True,
+                knowledge=knowledge_base,
+                think=False,
                 search=True,
-                analyze=False,  # Tắt analyze để tránh lỗi
-                add_instructions=False,  # Tắt add_instructions để tránh conflict
-                add_few_shot=False,  # Tắt add_few_shot để tránh lỗi
+                analyze=True,  
+                add_instructions=True,  
+                add_few_shot=False, 
             )
             tools.append(knowledge_tools)
             print("✅ Knowledge tools added successfully with Qdrant")

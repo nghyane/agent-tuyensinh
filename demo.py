@@ -37,8 +37,8 @@ async def main():
     # List câu hỏi demo
     demo_questions = [
         # "Học phí ngành CNTT bao nhiêu?",
-        "Chính sách học bổng 2025 của FPT có gì mới?"
-        # "Điểm chuẩn ngành AI năm 2025?",
+        # "Chính sách học bổng 2025 của FPT có gì mới?"
+        "Điểm chuẩn ngành AI năm 2025?",
         # "Cơ sở FPT ở đâu?",
         # "Thời gian học ngành Software Engineering?",
         # "Có chương trình học bổng không?",
