@@ -8,12 +8,6 @@ install:
 	chmod +x activate_env.sh 
 	./activate_env.sh
 	pip install -r requirements.txt
-	
-
-
-demo-performance: ## Run demo with performance monitoring
-	@echo "📊 Running Demo with Performance Monitoring..."
-	@FPT_AGENT_LOG_LEVEL=DEBUG python agno_demo.py --performance
 
 api: ## Run FPT Agent API server
 	@echo "🚀 Starting FPT University Agent API Server..."

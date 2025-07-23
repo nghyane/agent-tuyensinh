@@ -5,6 +5,7 @@ Combines rule-based and vector-based intent detection
 
 import time
 import hashlib
+import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 
@@ -16,8 +17,19 @@ from infrastructure.caching.memory_cache import MemoryCacheService
 from shared.types import DetectionMethod, QueryText, IntentId
 from shared.utils.text_processing import VietnameseTextProcessor
 
+logger = logging.getLogger(__name__)
 
+class IntentDetectionError(Exception):
+    """Base exception for intent detection errors"""
+    pass
 
+class VectorSearchError(IntentDetectionError):
+    """Exception for vector search failures"""
+    pass
+
+class RuleDetectionError(IntentDetectionError):
+    """Exception for rule-based detection failures"""
+    pass
 
 
 @dataclass
@@ -113,7 +125,14 @@ class HybridIntentDetectionService:
 
             return best_result
 
+        except VectorSearchError as e:
+            logger.warning(f"Vector search failed: {e}")
+            return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
+        except RuleDetectionError as e:
+            logger.warning(f"Rule detection failed: {e}")
+            return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
         except Exception as e:
+            logger.error(f"Unexpected error in intent detection: {e}")
             return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
     
     async def _vector_search(self, query: str) -> Optional[IntentResult]:
@@ -123,11 +142,15 @@ class HybridIntentDetectionService:
 
         try:
             # Generate query embedding with timeout
+            if not self.embedding_service:
+                return None
             query_embedding = await self.embedding_service.embed_text(query)
             if not query_embedding:
                 return None
 
             # Search in vector store with optimized parameters
+            if not self.vector_store:
+                return None
             candidates = await self.vector_store.search(
                 query_vector=query_embedding,
                 top_k=self.config.vector_top_k,
@@ -158,7 +181,8 @@ class HybridIntentDetectionService:
             )
 
         except Exception as e:
-            return None
+            logger.error(f"Vector search failed: {e}")
+            raise VectorSearchError(f"Vector search failed: {e}") from e
     
     async def _get_cached_result(self, query: str) -> Optional[IntentResult]:
         """Get cached result for query"""

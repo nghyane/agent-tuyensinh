@@ -1,33 +1,17 @@
 services:
-  # # Main application
-  # fpt-agent:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: production
-  #   container_name: fpt-agent
-  #   environment:
-  #     - FPT_AGENT_ENVIRONMENT=production
-  #     - FPT_AGENT_LOG_LEVEL=INFO
-  #     - FPT_AGENT_CACHE_BACKEND=redis
-  #     - FPT_AGENT_VECTOR_BACKEND=qdrant
-  #     - REDIS_URL=redis://redis:6379/0
-  #     - QDRANT_HOST=qdrant
-  #     - QDRANT_PORT=6333
-  #   depends_on:
-  #     - redis
-  #     - qdrant
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./logs:/app/logs
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
+  # Main application
+  fpt-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: fpt-agent
+    environment:
+      - OPENAI_BASE_URL=https://api.iunhi.com
+      - OPENAI_API_KEY=sk-dummy-key
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
 
   # Redis cache
   redis:
@@ -85,50 +69,10 @@ services:
     profiles:
       - dev
 
-  # Monitoring with Prometheus (optional)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: fpt-agent-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-      - "--storage.tsdb.retention.time=200h"
-      - "--web.enable-lifecycle"
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
-  # Grafana for visualization (optional)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: fpt-agent-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
 volumes:
   redis_data:
     driver: local
   qdrant_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
     driver: local
 
 networks:
