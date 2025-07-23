@@ -55,22 +55,6 @@ class ApiSettings(BaseSettings):
         if "*" in valid_cors:
             return ["*"]
 
-        # Add localhost to cors to allow requests from the local environment
-        valid_cors.extend(
-            [
-                "http://localhost",
-                "http://localhost:3000",
-                "http://localhost:8000",
-                "http://localhost:8080",
-                "http://127.0.0.1",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:8000",
-                "http://127.0.0.1:8080",
-                "https://app.agno.com",
-                "https://playground.agno.com",
-            ]
-        )
-
         return valid_cors
 
     @field_validator("port", mode="before")
@@ -114,6 +98,22 @@ class ApiSettings(BaseSettings):
         # If "*" is in the list, return only "*" (allow all origins)
         if "*" in origins:
             return ["*"]
+        
+        # Add localhost to cors to allow requests from the local environment
+        origins.extend(
+            [
+                "http://localhost",
+                "http://localhost:3000",
+                "http://localhost:8000",
+                "http://localhost:8080",
+                "http://127.0.0.1",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8000",
+                "http://127.0.0.1:8080",
+                "https://app.agno.com",
+                "https://playground.agno.com",
+            ]
+        )
         
         return origins
 
