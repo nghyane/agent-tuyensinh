@@ -26,8 +26,8 @@ class ApiSettings(BaseSettings):
     port: int = Field(default=8000, ge=1, le=65535)
     reload: bool = False
 
-    # CORS origin list to allow requests from
-    cors_origin_list: Union[str, List[str]] = Field(default_factory=list)
+    # CORS origins (comma-separated string)
+    cors_origin_list: str = Field(default="", description="Comma-separated list of allowed origins")
 
     # Intent detection settings
     intent_detection_timeout: float = Field(default=10.0, ge=0.1, le=300.0)
@@ -38,24 +38,11 @@ class ApiSettings(BaseSettings):
 
     @field_validator("cors_origin_list", mode="before")
     @classmethod
-    def set_cors_origin_list(cls, cors_origin_list, info: FieldValidationInfo):
-        # Handle comma-separated string from environment variable
-        if isinstance(cors_origin_list, str):
-            valid_cors = [
-                origin.strip()
-                for origin in cors_origin_list.split(",")
-                if origin.strip()
-            ]
-        elif isinstance(cors_origin_list, list):
-            valid_cors = cors_origin_list
-        else:
-            valid_cors = []
-
-        # If "*" is in the list, return only "*" (allow all origins)
-        if "*" in valid_cors:
-            return ["*"]
-
-        return valid_cors
+    def validate_cors_origins(cls, value):
+        """Validate CORS origins string"""
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
 
     @field_validator("port", mode="before")
     @classmethod
@@ -84,38 +71,29 @@ class ApiSettings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         """Get CORS origins as a list of strings."""
-        if isinstance(self.cors_origin_list, str):
-            origins = [
-                origin.strip()
-                for origin in self.cors_origin_list.split(",")
-                if origin.strip()
-            ]
-        elif isinstance(self.cors_origin_list, list):
-            origins = self.cors_origin_list
-        else:
-            origins = []
-
-        # If "*" is in the list, return only "*" (allow all origins)
+        # Parse comma-separated string
+        origins = [
+            origin.strip() 
+            for origin in self.cors_origin_list.split(",") 
+            if origin.strip()
+        ]
+        
+        # Handle wildcard
         if "*" in origins:
             return ["*"]
         
-        # Add localhost to cors to allow requests from the local environment
-        origins.extend(
-            [
-                "http://localhost",
-                "http://localhost:3000",
-                "http://localhost:8000",
-                "http://localhost:8080",
-                "http://127.0.0.1",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:8000",
-                "http://127.0.0.1:8080",
-                "https://app.agno.com",
-                "https://playground.agno.com",
-            ]
-        )
+        # Add default origins for development
+        default_origins = [
+            "http://localhost:3000",
+            "http://localhost:8000", 
+            "https://app.agno.com",
+            "https://playground.agno.com",
+            "https://swd-chatbot.vercel.app"
+        ]
         
-        return origins
+        # Merge and remove duplicates
+        all_origins = list(set(origins + default_origins))
+        return all_origins
 
     model_config = {
         "env_file": ".env",
