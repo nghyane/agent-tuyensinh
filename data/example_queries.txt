@@ -1,0 +1,38 @@
+# Example queries for batch processing
+# Lines starting with # are comments and will be ignored
+
+# Tuition inquiries
+Học phí ngành CNTT là bao nhiêu?
+Chi phí học tại FPT University?
+Có chương trình học bổng không?
+Phí ký túc xá bao nhiêu?
+
+# Admission requirements
+Điều kiện tuyển sinh vào FPT University?
+Điểm chuẩn năm 2024 là bao nhiêu?
+Cần chuẩn bị gì để thi vào FPT?
+Thời gian đăng ký tuyển sinh?
+
+# Program information
+Ngành AI có khó không?
+Chương trình học ngành Software Engineering?
+Thời gian học ngành Data Science?
+Có thực tập trong chương trình học không?
+
+# Campus facilities
+Campus Hà Nội có những ngành nào?
+Ký túc xá FPT như thế nào?
+Thư viện mở cửa giờ nào?
+Có sân thể thao không?
+
+# Contact and general
+Cách liên hệ phòng đào tạo?
+Địa chỉ campus ở đâu?
+Hotline tư vấn tuyển sinh?
+Website chính thức của FPT?
+
+# Career and graduation
+Tốt nghiệp có việc làm ngay không?
+FPT có hợp tác với công ty nào?
+Cơ hội thực tập tại FPT?
+Mức lương sau khi tốt nghiệp?

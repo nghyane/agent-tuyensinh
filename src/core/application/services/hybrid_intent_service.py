@@ -3,10 +3,11 @@ Hybrid Intent Detection Service
 Combines rule-based and vector-based intent detection
 """
 
+import asyncio
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from agno.embedder.openai import OpenAIEmbedder
 
@@ -134,6 +135,65 @@ class HybridIntentDetectionService:
         except Exception as e:
             logger.error(f"Unexpected error in intent detection: {e}")
             return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
+
+    async def detect_batch_intents(
+        self, contexts: List[DetectionContext], max_concurrent: int = 10
+    ) -> List[IntentResult]:
+        """
+        Process multiple queries concurrently with controlled parallelism
+
+        Args:
+            contexts: List of detection contexts to process
+            max_concurrent: Maximum number of concurrent operations
+
+        Returns:
+            List of IntentResult in the same order as input contexts
+        """
+        if not contexts:
+            return []
+
+        # Process in batches to avoid overwhelming the system
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def process_single_context(context: DetectionContext) -> IntentResult:
+            async with semaphore:
+                try:
+                    return await self.detect_intent(context)
+                except Exception as e:
+                    logger.error(
+                        f"Batch processing failed for query '{context.query}': {e}"
+                    )
+                    return self._create_fallback_result(0.1, DetectionMethod.FALLBACK)
+
+        # Execute all tasks concurrently
+        tasks = [process_single_context(context) for context in contexts]
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+
+        logger.info(
+            f"Batch processed {len(contexts)} queries with max_concurrent={max_concurrent}"
+        )
+        return results
+
+    async def detect_batch_queries(
+        self, queries: List[str], max_concurrent: int = 10
+    ) -> List[IntentResult]:
+        """
+        Convenience method to process multiple query strings
+
+        Args:
+            queries: List of query strings to process
+            max_concurrent: Maximum number of concurrent operations
+
+        Returns:
+            List of IntentResult in the same order as input queries
+        """
+        contexts = [
+            DetectionContext(query=query.strip(), metadata={})
+            for query in queries
+            if query and query.strip()
+        ]
+
+        return await self.detect_batch_intents(contexts, max_concurrent)
 
     async def _vector_search(self, query: str) -> Optional[IntentResult]:
         """Optimized vector search for intent detection"""

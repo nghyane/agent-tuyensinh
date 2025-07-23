@@ -5,12 +5,11 @@ Optimized for Agno framework best practices
 
 import json
 import logging
-from typing import Optional
 from dataclasses import asdict
+from typing import Optional
 
 # Import Agent type for proper type hints
 from agno.agent import Agent
-from agno.memory.v2.schema import UserMemory
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -73,11 +72,11 @@ async def _process_chat_message(
 def _format_sse_data(data) -> str:
     """Format data as Server-Sent Events"""
     # Auto convert object to dict using vars()
-    if hasattr(data, '__dict__'):
+    if hasattr(data, "__dict__"):
         event_dict = vars(data)
     else:
         event_dict = data
-    
+
     return f"data: {json.dumps(event_dict, default=str)}\n\n"
 
 
@@ -154,7 +153,11 @@ async def get_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
     # Convert to serializable format using asdict() as per Agno docs
     serializable_memories = [asdict(memory) for memory in memories]
 
-    return {"memories": serializable_memories, "count": len(serializable_memories), "user_id": user_id}
+    return {
+        "memories": serializable_memories,
+        "count": len(serializable_memories),
+        "user_id": user_id,
+    }
 
 
 @chat_router.delete("/memory/{user_id}")
@@ -192,7 +195,7 @@ async def get_session_history(session_id: str, agent: Agent = Depends(get_agent)
     """Get conversation history for a specific session using Agno standard method"""
     # Use Agno's standard method as per docs
     messages = agent.get_messages_for_session(session_id=session_id)
-    
+
     # Convert to serializable format using model_dump() as per Agno docs
     serializable_messages = [
         msg.model_dump(include={"role", "content", "timestamp", "created_at"})

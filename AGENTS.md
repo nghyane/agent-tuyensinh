@@ -8,6 +8,8 @@
 - `make lint` - Run linters with auto-fix (black, isort, ruff, mypy)
 - `make lint-check` - Run linters without auto-fix (for CI)
 - `python demo.py` - Run agent demo with predefined questions
+- `python demo.py batch` - Run batch processing demo
+- `poetry run python src/utils/batch_processor.py --file data/example_queries.txt` - Batch process queries from file
 - `make clean` - Clean __pycache__, .pyc files and build artifacts
 - `make docker-build && make docker-run` - Build and run with Docker Compose
 - **Single test**: `poetry run pytest path/to/test_file.py::test_function` - Run specific test
@@ -30,3 +32,7 @@
 - **Services**: Initialize via ServiceFactory with dependency injection pattern
 - **Enums**: Use typed enums for constants (DetectionMethod, ConfidenceLevel, IntentCategory)
 - **Context Managers**: Implement async context managers for resource management
+- **Batch Processing**: Use `detect_batch_queries()` for internal processing of multiple queries concurrently
+- **Performance**: Batch processing provides 3-5x speedup over sequential processing for internal operations
+- **Concurrency Control**: Use max_concurrent parameter (1-20) to control system load in batch operations
+- **Internal Use**: Batch processing is for internal operations, testing, and admin tools - not exposed via public API

@@ -12,7 +12,6 @@ from agno.memory.v2.memory import Memory
 from agno.models.openai import OpenAILike
 from agno.storage.postgres import PostgresStorage
 from agno.tools.knowledge import KnowledgeTools
-from agno.tools.reasoning import ReasoningTools
 
 from agno_integration.intent_tool import create_intent_detection_tool
 from agno_integration.university_api_tool import (
@@ -72,9 +71,9 @@ def get_fpt_agent(
                 knowledge=knowledge_base,
                 think=False,
                 search=True,
-                analyze=True,  
-                add_instructions=True,  
-                add_few_shot=False, 
+                analyze=True,
+                add_instructions=True,
+                add_few_shot=False,
             )
             tools.append(knowledge_tools)
             print("✅ Knowledge tools added successfully with Qdrant")

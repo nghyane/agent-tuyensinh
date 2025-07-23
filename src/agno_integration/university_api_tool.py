@@ -8,12 +8,12 @@ from typing import Optional
 from agno.tools.toolkit import Toolkit
 
 from infrastructure.api.university_client import UniversityApiClient
+from shared.utils.tuition_formatter import TuitionFormatter
 from shared.utils.university_formatters import (
     CampusFormatter,
     DepartmentFormatter,
     ProgramFormatter,
 )
-from shared.utils.tuition_formatter import TuitionFormatter
 
 
 class UniversityApiTool(Toolkit):
@@ -226,10 +226,7 @@ class UniversityApiTool(Toolkit):
                 tuition_records, meta, filters
             )
         else:
-            return (
-                f"❌ **Lỗi khi lấy thông tin học phí**\n\n"
-                f"{result.error_message}"
-            )
+            return f"❌ **Lỗi khi lấy thông tin học phí**\n\n" f"{result.error_message}"
 
     async def get_tuition_details(self, tuition_id: str) -> str:
         """
@@ -247,10 +244,7 @@ class UniversityApiTool(Toolkit):
             tuition = result.data or {}
             return self.tuition_formatter.format_tuition_details(tuition)
         else:
-            return (
-                f"❌ **Lỗi khi lấy chi tiết học phí**\n\n"
-                f"{result.error_message}"
-            )
+            return f"❌ **Lỗi khi lấy chi tiết học phí**\n\n" f"{result.error_message}"
 
     async def get_campus_tuition_summary(self, campus_id: str, year: int = 2025) -> str:
         """

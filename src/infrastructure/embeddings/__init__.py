@@ -23,7 +23,7 @@ def get_embedding_service() -> OpenAIEmbedder:
         _embedding_service = OpenAIEmbedder(
             id="text-embedding-3-small",
             api_key=os.getenv("OPENAI_API_KEY"),
-            base_url= "https://api.openai.com/v1"
+            base_url="https://api.openai.com/v1"
             # os.getenv("OPENAI_BASE_URL"
         )
         print(f"✅ Global embedding service initialized: {_embedding_service.id}")
