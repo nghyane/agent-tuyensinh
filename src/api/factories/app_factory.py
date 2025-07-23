@@ -69,7 +69,7 @@ class AppFactory:
         # Add CORS middleware first
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=api_settings.cors_origin_list or ["*"],
+            allow_origins=api_settings.cors_origins or ["*"],
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],

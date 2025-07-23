@@ -2,7 +2,7 @@
 API settings for FPT University Agent
 """
 
-from typing import List
+from typing import List, Union
 
 from pydantic import Field, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
@@ -27,7 +27,7 @@ class ApiSettings(BaseSettings):
     reload: bool = False
 
     # CORS origin list to allow requests from
-    cors_origin_list: List[str] = Field(default_factory=list, validate_default=True)
+    cors_origin_list: Union[str, List[str]] = Field(default_factory=list)
 
     # Intent detection settings
     intent_detection_timeout: float = 10.0
@@ -46,8 +46,14 @@ class ApiSettings(BaseSettings):
                 for origin in cors_origin_list.split(",")
                 if origin.strip()
             ]
+        elif isinstance(cors_origin_list, list):
+            valid_cors = cors_origin_list
         else:
-            valid_cors = cors_origin_list or []
+            valid_cors = []
+
+        # If "*" is in the list, return only "*" (allow all origins)
+        if "*" in valid_cors:
+            return ["*"]
 
         # Add localhost to cors to allow requests from the local environment
         valid_cors.extend(
@@ -66,6 +72,26 @@ class ApiSettings(BaseSettings):
         )
 
         return valid_cors
+
+    @property
+    def cors_origins(self) -> List[str]:
+        """Get CORS origins as a list of strings."""
+        if isinstance(self.cors_origin_list, str):
+            origins = [
+                origin.strip()
+                for origin in self.cors_origin_list.split(",")
+                if origin.strip()
+            ]
+        elif isinstance(self.cors_origin_list, list):
+            origins = self.cors_origin_list
+        else:
+            origins = []
+
+        # If "*" is in the list, return only "*" (allow all origins)
+        if "*" in origins:
+            return ["*"]
+        
+        return origins
 
     model_config = {
         "env_file": ".env",
