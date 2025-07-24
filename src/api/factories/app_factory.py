@@ -69,12 +69,11 @@ class AppFactory:
         # Add CORS middleware first
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=api_settings.cors_origins or ["*"],
+            allow_origins=["*"],
             allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_methods=["*"],
             allow_headers=["*"],
             expose_headers=["*"],
-            
         )
 
         # Add v1 router after CORS middleware
