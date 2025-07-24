@@ -74,6 +74,7 @@ class AppFactory:
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
             expose_headers=["*"],
+            
         )
 
         # Add v1 router after CORS middleware

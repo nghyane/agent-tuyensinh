@@ -88,7 +88,8 @@ class ApiSettings(BaseSettings):
             "http://localhost:8000", 
             "https://app.agno.com",
             "https://playground.agno.com",
-            "https://swd-chatbot.vercel.app"
+            "https://swd-chatbot.vercel.app",
+            "dashboard-chatbot-fe-production.up.railway.app"
         ]
         
         # Merge and remove duplicates
