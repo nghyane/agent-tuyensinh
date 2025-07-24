@@ -327,6 +327,85 @@ class UniversityApiClient:
         else:
             return Result.error(response.error_message or "Unknown error")
 
+    async def get_scholarships(
+        self,
+        year: int = 2025,
+        is_active: Optional[bool] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Result[Dict[str, Any]]:
+        """Get scholarships list"""
+        params: Dict[str, Union[int, str, bool]] = {
+            "year": max(min(year, 2030), 2020),
+            "limit": min(max(limit, 1), 100),
+            "offset": max(offset, 0),
+        }
+        if is_active is not None:
+            params["is_active"] = is_active
+
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.SCHOLARSHIPS.value, params=params
+        )
+
+        if response.success:
+            return Result.ok(
+                {
+                    "scholarships": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
+    async def get_scholarship_details(self, scholarship_id: str) -> Result[Dict[str, Any]]:
+        """Get specific scholarship details"""
+        response = await self._make_request(
+            "GET", f"{UniversityApiEndpoint.SCHOLARSHIPS.value}/{scholarship_id}"
+        )
+
+        if response.success:
+            return Result.ok(response.data or {})
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
+    async def get_admission_methods(
+        self,
+        year: int = 2025,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Result[Dict[str, Any]]:
+        """Get admission methods list"""
+        params: Dict[str, Union[int, str]] = {
+            "year": max(min(year, 2030), 2020),
+            "limit": min(max(limit, 1), 100),
+            "offset": max(offset, 0),
+        }
+
+        response = await self._make_request(
+            "GET", UniversityApiEndpoint.ADMISSION_METHODS.value, params=params
+        )
+
+        if response.success:
+            return Result.ok(
+                {
+                    "admission_methods": response.data or [],
+                    "meta": response.meta or {},
+                }
+            )
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
+    async def get_admission_method_details(self, method_id: str) -> Result[Dict[str, Any]]:
+        """Get specific admission method details"""
+        response = await self._make_request(
+            "GET", f"{UniversityApiEndpoint.ADMISSION_METHODS.value}/{method_id}"
+        )
+
+        if response.success:
+            return Result.ok(response.data or {})
+        else:
+            return Result.error(response.error_message or "Unknown error")
+
     async def close(self):
         """Close aiohttp session"""
         if self._session and not self._session.closed:

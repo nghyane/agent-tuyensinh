@@ -8,6 +8,8 @@ from typing import Optional
 from agno.tools.toolkit import Toolkit
 
 from infrastructure.api.university_client import UniversityApiClient
+from shared.utils.admission_method_formatter import AdmissionMethodFormatter
+from shared.utils.scholarship_formatter import ScholarshipFormatter
 from shared.utils.tuition_formatter import TuitionFormatter
 from shared.utils.university_formatters import (
     CampusFormatter,
@@ -34,6 +36,8 @@ class UniversityApiTool(Toolkit):
         self.program_formatter = ProgramFormatter()
         self.campus_formatter = CampusFormatter()
         self.tuition_formatter = TuitionFormatter()
+        self.scholarship_formatter = ScholarshipFormatter()
+        self.admission_method_formatter = AdmissionMethodFormatter()
 
         # Register all methods as tools
         super().__init__(
@@ -47,6 +51,10 @@ class UniversityApiTool(Toolkit):
                 self.get_tuition_list,
                 self.get_tuition_details,
                 self.get_campus_tuition_summary,
+                self.get_scholarships,
+                self.get_scholarship_details,
+                self.get_admission_methods,
+                self.get_admission_method_details,
             ],
         )
 
@@ -267,6 +275,115 @@ class UniversityApiTool(Toolkit):
         else:
             return (
                 f"❌ **Lỗi khi lấy tổng hợp học phí campus**\n\n"
+                f"{result.error_message}"
+            )
+
+    async def get_scholarships(
+        self,
+        year: int = 2025,
+        is_active: Optional[bool] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> str:
+        """
+        Lấy danh sách học bổng của FPT University
+
+        Args:
+            year: Năm để lọc (2020-2030)
+            is_active: Lọc học bổng còn hiệu lực (true/false)
+            limit: Số lượng kết quả tối đa (1-100)
+            offset: Vị trí bắt đầu
+
+        Returns:
+            Danh sách học bổng được format đẹp
+        """
+        result = await self.client.get_scholarships(
+            year=year, is_active=is_active, limit=limit, offset=offset
+        )
+
+        if result.is_ok():
+            data = result.data or {}
+            scholarships = data.get("scholarships", [])
+            meta = data.get("meta", {})
+            filters = {"year": year}
+            if is_active is not None:
+                filters["is_active"] = is_active
+            return self.scholarship_formatter.format_scholarships_list(
+                scholarships, meta, filters
+            )
+        else:
+            return f"❌ **Lỗi khi lấy thông tin học bổng**\n\n{result.error_message}"
+
+    async def get_scholarship_details(self, scholarship_id: str) -> str:
+        """
+        Lấy chi tiết một học bổng cụ thể theo ID
+
+        Args:
+            scholarship_id: UUID của học bổng
+
+        Returns:
+            Chi tiết học bổng được format đẹp
+        """
+        result = await self.client.get_scholarship_details(scholarship_id)
+
+        if result.is_ok():
+            scholarship = result.data or {}
+            return self.scholarship_formatter.format_scholarship_details(scholarship)
+        else:
+            return f"❌ **Lỗi khi lấy chi tiết học bổng**\n\n{result.error_message}"
+
+    async def get_admission_methods(
+        self, year: int = 2025, limit: int = 100, offset: int = 0
+    ) -> str:
+        """
+        Lấy danh sách các phương thức tuyển sinh của FPT University
+
+        Args:
+            year: Năm để lọc (2020-2030)
+            limit: Số lượng kết quả tối đa (1-100)
+            offset: Vị trí bắt đầu
+
+        Returns:
+            Danh sách phương thức tuyển sinh được format đẹp
+        """
+        result = await self.client.get_admission_methods(
+            year=year, limit=limit, offset=offset
+        )
+
+        if result.is_ok():
+            data = result.data or {}
+            methods = data.get("admission_methods", [])
+            meta = data.get("meta", {})
+            filters = {"year": year}
+            return self.admission_method_formatter.format_admission_methods_list(
+                methods, meta, filters
+            )
+        else:
+            return (
+                f"❌ **Lỗi khi lấy thông tin phương thức tuyển sinh**\n\n"
+                f"{result.error_message}"
+            )
+
+    async def get_admission_method_details(self, method_id: str) -> str:
+        """
+        Lấy chi tiết một phương thức tuyển sinh cụ thể theo ID
+
+        Args:
+            method_id: UUID của phương thức tuyển sinh
+
+        Returns:
+            Chi tiết phương thức tuyển sinh được format đẹp
+        """
+        result = await self.client.get_admission_method_details(method_id)
+
+        if result.is_ok():
+            method = result.data or {}
+            return self.admission_method_formatter.format_admission_method_details(
+                method
+            )
+        else:
+            return (
+                f"❌ **Lỗi khi lấy chi tiết phương thức tuyển sinh**\n\n"
                 f"{result.error_message}"
             )
 
