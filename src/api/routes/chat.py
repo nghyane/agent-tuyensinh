@@ -54,6 +54,24 @@ class ChatRequest(BaseModel):
         return v.strip()
 
 
+class RenameSessionRequest(BaseModel):
+    """Request to rename a session"""
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="New name for the session"
+    )
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v):
+        if not v.strip():
+            raise ValueError("Session name cannot be empty")
+        return v.strip()
+
+
 # Dependency injection
 def get_service_factory(request: Request) -> ServiceFactory:
     """Get service factory from app state"""
@@ -104,7 +122,6 @@ async def send_message(
 
     response: RunResponse = await agent.arun(
         chat_request.message,
-        # user_id and session_id are now in the agent's context
         stream=False,
     )
 
@@ -236,6 +253,38 @@ async def get_session_history(agent: Agent = Depends(get_agent_for_session)):
     }
 
 
+@chat_router.put("/sessions/{session_id}/rename")
+async def rename_session(
+    rename_request: RenameSessionRequest,
+    agent: Agent = Depends(get_agent_for_session)
+):
+    """Rename a specific session"""
+    if not hasattr(agent, "storage") or agent.storage is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Storage system not available",
+        )
+
+    # Get or create session data
+    session = agent.storage.get_session(session_id=agent.session_id)
+    if not session:
+        # Create new session if it doesn't exist
+        from agno.storage.session import Session
+        session = Session(session_id=agent.session_id, session_data={})
+
+    if session.session_data is None:
+        session.session_data = {}
+
+    session.session_data["session_name"] = rename_request.name
+    agent.storage.update_session(session)
+
+    return {
+        "message": f"Session renamed successfully",
+        "session_id": agent.session_id,
+        "new_name": rename_request.name,
+    }
+
+
 @chat_router.delete("/sessions/{session_id}")
 async def delete_session(agent: Agent = Depends(get_agent_for_session)):
     """Delete a specific session and all its conversation history"""
@@ -245,18 +294,8 @@ async def delete_session(agent: Agent = Depends(get_agent_for_session)):
             detail="Storage system not available",
         )
 
-    # Check if session exists
-    session = agent.storage.get_session(session_id=agent.session_id)
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Session {agent.session_id} not found",
-        )
-
-    # Delete the session
+    # Delete the session (no need to check existence for hash ID)
     agent.storage.delete_session(session_id=agent.session_id)
-
-    logger.info(f"Successfully deleted session {agent.session_id}")
 
     return {
         "message": f"Session {agent.session_id} deleted successfully",
