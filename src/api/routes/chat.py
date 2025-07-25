@@ -193,16 +193,31 @@ async def clear_user_memories(agent: Agent = Depends(get_agent_for_user)):
 
 @chat_router.get("/sessions/{user_id}")
 async def get_user_sessions(agent: Agent = Depends(get_agent_for_user)):
-    """Get all session IDs for a specific user using Agno standard method"""
+    """Get all sessions for a specific user, including their names."""
     if not hasattr(agent, "storage") or agent.storage is None:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Storage system not available",
         )
 
-    sessions = agent.storage.get_all_session_ids(agent.user_id)
+    sessions = agent.storage.get_all_sessions(user_id=agent.user_id)
 
-    return {"sessions": sessions, "count": len(sessions), "user_id": agent.user_id}
+    # Format sessions to include id and name
+    formatted_sessions = []
+    for session in sessions:
+        if session and session.session_data:
+            formatted_sessions.append(
+                {
+                    "id": session.session_id,
+                    "name": session.session_data.get("session_name", "Untitled"),
+                }
+            )
+
+    return {
+        "sessions": formatted_sessions,
+        "count": len(formatted_sessions),
+        "user_id": agent.user_id,
+    }
 
 
 @chat_router.get("/history/{session_id}")
