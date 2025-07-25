@@ -234,3 +234,31 @@ async def get_session_history(agent: Agent = Depends(get_agent_for_session)):
         "session_id": agent.session_id,
         "count": len(serializable_messages),
     }
+
+
+@chat_router.delete("/sessions/{session_id}")
+async def delete_session(agent: Agent = Depends(get_agent_for_session)):
+    """Delete a specific session and all its conversation history"""
+    if not hasattr(agent, "storage") or agent.storage is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Storage system not available",
+        )
+
+    # Check if session exists
+    session = agent.storage.get_session(session_id=agent.session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {agent.session_id} not found",
+        )
+
+    # Delete the session
+    agent.storage.delete_session(session_id=agent.session_id)
+
+    logger.info(f"Successfully deleted session {agent.session_id}")
+
+    return {
+        "message": f"Session {agent.session_id} deleted successfully",
+        "session_id": agent.session_id,
+    }
