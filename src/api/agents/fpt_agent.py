@@ -27,6 +27,8 @@ def get_fpt_agent(
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
     intent_service: Optional[HybridIntentDetectionService] = None,
+    storage: Optional[PostgresStorage] = None,
+    memory: Optional[Memory] = None,
     debug_mode: bool = False,
     enable_rag: bool = True,
 ) -> Agent:
@@ -38,6 +40,8 @@ def get_fpt_agent(
         user_id: User ID for context
         session_id: Session ID for context
         intent_service: Intent detection service
+        storage: Pre-initialized storage service
+        memory: Pre-initialized memory service
         debug_mode: Enable debug mode
         enable_rag: Enable RAG knowledge base
 
@@ -88,11 +92,11 @@ def get_fpt_agent(
             "DATABASE_URL environment variable is required for PostgreSQL storage"
         )
 
-    # Storage for agent sessions
-    storage = PostgresStorage(table_name="fpt_agent_sessions", db_url=db_url)
-
-    # Memory for long-term user memory
-    memory = Memory(
+    # Use pre-initialized storage and memory if provided, otherwise create new ones
+    storage = storage or PostgresStorage(
+        table_name="fpt_agent_sessions", db_url=db_url
+    )
+    memory = memory or Memory(
         db=PostgresMemoryDb(table_name="fpt_user_memories", db_url=db_url),
         delete_memories=True,
         clear_memories=True,

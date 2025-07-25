@@ -31,22 +31,18 @@ class AppFactory:
             model_id=api_settings.default_model, debug_mode=False
         )
 
-        # Get agent instance once
-        agent = self.service_factory.get_fpt_agent()
+        # Pass service_factory to app state so it can be accessed in requests
+        app.state.service_factory = self.service_factory
 
-        # Set global agent instance
-        import api.routes
-
-        api.routes.fpt_agent = agent
-
-        # Create playground router after agent is initialized
-        if agent is not None:
+        # Create a temporary agent instance just for creating the playground
+        temp_agent_for_playground = self.service_factory.get_fpt_agent()
+        if temp_agent_for_playground:
             print("🔧 Creating playground router...")
-            self.playground_router = create_playground_router(agent)
+            self.playground_router = create_playground_router(temp_agent_for_playground)
             app.include_router(self.playground_router, prefix="/v1")
             print("✅ Playground router added successfully")
         else:
-            print("⚠️  Agent not initialized, skipping playground router")
+            print("⚠️  Agent could not be created, skipping playground router")
 
         yield
         # Shutdown (if needed)

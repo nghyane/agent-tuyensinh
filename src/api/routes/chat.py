@@ -5,14 +5,26 @@ Optimized for Agno framework best practices
 
 import json
 import logging
+import dataclasses
 from dataclasses import asdict
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 # Import Agent type for proper type hints
 from agno.agent import Agent
-from fastapi import APIRouter, Depends, HTTPException, status
+from agno.memory.v2.memory import Memory  # Import Memory v2 for type checking
+from agno.run.response import RunResponse, RunResponseEvent
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
+
+from api.factories.service_factory import ServiceFactory
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -43,95 +55,97 @@ class ChatRequest(BaseModel):
 
 
 # Dependency injection
-async def get_agent() -> Agent:
-    """Get agent instance with proper error handling"""
-    from api.routes import fpt_agent
-
-    if fpt_agent is None:
+def get_service_factory(request: Request) -> ServiceFactory:
+    """Get service factory from app state"""
+    service_factory = request.app.state.service_factory
+    if not service_factory:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Agent not initialized",
+            detail="Services not initialized",
         )
-    return fpt_agent
+    return service_factory
 
 
-# Core chat functionality
-async def _process_chat_message(
-    agent: Agent, message: str, user_id: str, session_id: Optional[str] = None
-):
-    """Process chat message using Agno's built-in handling"""
-    logger.info(f"Processing message for user {user_id}, session {session_id}")
-
-    # Run agent with Agno's built-in error handling
-    response = await agent.arun(message, user_id=user_id, session_id=session_id)
-
-    logger.info(f"Successfully processed message for user {user_id}")
-    return response
+def get_agent_for_chat(
+    chat_request: ChatRequest,
+    service_factory: ServiceFactory = Depends(get_service_factory),
+) -> Agent:
+    """Get a new agent instance for each chat request."""
+    return service_factory.get_fpt_agent(
+        user_id=chat_request.user_id, session_id=chat_request.session_id
+    )
 
 
-def _format_sse_data(data) -> str:
-    """Format data as Server-Sent Events"""
-    # Auto convert object to dict using vars()
-    if hasattr(data, "__dict__"):
-        event_dict = vars(data)
-    else:
-        event_dict = data
+def get_agent_for_user(
+    user_id: str, service_factory: ServiceFactory = Depends(get_service_factory)
+) -> Agent:
+    """Get a temporary agent to access user-specific data (memory)."""
+    return service_factory.get_fpt_agent(user_id=user_id)
 
-    return f"data: {json.dumps(event_dict, default=str)}\n\n"
+
+def get_agent_for_session(
+    session_id: str, service_factory: ServiceFactory = Depends(get_service_factory)
+) -> Agent:
+    """Get a temporary agent to access session-specific data (history)."""
+    return service_factory.get_fpt_agent(session_id=session_id)
 
 
 # API Endpoints
 @chat_router.post("/send")
-async def send_message(chat_request: ChatRequest, agent: Agent = Depends(get_agent)):
+async def send_message(
+    chat_request: ChatRequest,
+    background_tasks: BackgroundTasks,
+    agent: Agent = Depends(get_agent_for_chat),
+):
     """Send a message to the FPT University Agent"""
-    if not chat_request.session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="session_id is required for conversation continuity",
-        )
-
-    # Use Agno's built-in response directly
-    response = await _process_chat_message(
-        agent=agent,
-        message=chat_request.message,
-        user_id=chat_request.user_id,
-        session_id=chat_request.session_id,
+    logger.info(
+        f"Processing message for user {agent.user_id}, session {agent.session_id}"
     )
 
-    return response
+    response: RunResponse = await agent.arun(
+        chat_request.message,
+        # user_id and session_id are now in the agent's context
+        stream=False,
+    )
+
+    logger.info(f"Successfully processed message for user {agent.user_id}")
+
+    # Automatically rename the session in the background
+    background_tasks.add_task(agent.auto_rename_session)
+
+    return response.content
 
 
 @chat_router.post("/stream")
-async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_agent)):
+async def stream_message(
+    chat_request: ChatRequest,
+    background_tasks: BackgroundTasks,
+    agent: Agent = Depends(get_agent_for_chat),
+):
     """Stream a message using Agno's built-in streaming with tool calls"""
-    if not chat_request.session_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="session_id is required for conversation continuity",
-        )
 
     async def generate_stream():
         """Generate Server-Sent Events stream using Agno's built-in streaming"""
-        # Use Agno's built-in streaming with tool calls
-        response_stream = await agent.arun(
+        response_stream: AsyncIterator[RunResponseEvent] = await agent.arun(
             chat_request.message,
-            user_id=chat_request.user_id,
-            session_id=chat_request.session_id,
+            # user_id and session_id are now in the agent's context
             stream=True,
             stream_intermediate_steps=True,
         )
 
         async for event in response_stream:
-            # Format event as proper JSON for frontend consumption
-            yield _format_sse_data(event)
+            event_dict = event.to_dict()
+            yield f"data: {json.dumps(event_dict, default=str)}\n\n"
+
+    # Automatically rename the session in the background after the stream completes
+    background_tasks.add_task(agent.auto_rename_session)
 
     return StreamingResponse(
         generate_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "*",
         },
@@ -139,44 +153,46 @@ async def stream_message(chat_request: ChatRequest, agent: Agent = Depends(get_a
 
 
 @chat_router.get("/memory/{user_id}")
-async def get_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
+async def get_user_memories(agent: Agent = Depends(get_agent_for_user)):
     """Get user memories from the agent's memory system using Agno standard method"""
-    if not hasattr(agent, "memory") or agent.memory is None:
+    if not isinstance(agent.memory, Memory):
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Memory system not available",
+            detail="Memory system not available or is not V2",
         )
 
-    # Use Agno's standard memory API as per docs
-    memories = agent.memory.get_user_memories(user_id=user_id)  # type: ignore
-
-    # Convert to serializable format using asdict() as per Agno docs
-    serializable_memories = [asdict(memory) for memory in memories]
+    memories = agent.memory.get_user_memories(user_id=agent.user_id)
+    serializable_memories = [asdict(memory) for memory in memories] if memories else []
 
     return {
         "memories": serializable_memories,
         "count": len(serializable_memories),
-        "user_id": user_id,
+        "user_id": agent.user_id,
     }
 
 
 @chat_router.delete("/memory/{user_id}")
-async def clear_user_memories(user_id: str, agent: Agent = Depends(get_agent)):
+async def clear_user_memories(agent: Agent = Depends(get_agent_for_user)):
     """Clear all memories for a specific user using standard Agno method"""
-    if not hasattr(agent, "memory") or agent.memory is None:
+    if not isinstance(agent.memory, Memory):
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Memory system not available",
+            detail="Memory system not available or is not V2",
         )
 
-    # Use Agno's built-in clear method directly
-    agent.memory.clear()
+    user_memories = agent.memory.get_user_memories(user_id=agent.user_id)
+    if user_memories:
+        for memory in user_memories:
+            if hasattr(memory, "memory_id") and memory.memory_id is not None:
+                agent.memory.delete_user_memory(
+                    user_id=agent.user_id, memory_id=memory.memory_id
+                )
 
-    return {"message": f"Memories cleared for user {user_id}"}
+    return {"message": f"Memories cleared for user {agent.user_id}"}
 
 
 @chat_router.get("/sessions/{user_id}")
-async def get_user_sessions(user_id: str, agent: Agent = Depends(get_agent)):
+async def get_user_sessions(agent: Agent = Depends(get_agent_for_user)):
     """Get all session IDs for a specific user using Agno standard method"""
     if not hasattr(agent, "storage") or agent.storage is None:
         raise HTTPException(
@@ -184,19 +200,15 @@ async def get_user_sessions(user_id: str, agent: Agent = Depends(get_agent)):
             detail="Storage system not available",
         )
 
-    # Use Agno's standard storage API as per docs
-    sessions = agent.storage.get_all_session_ids(user_id)
+    sessions = agent.storage.get_all_session_ids(agent.user_id)
 
-    return {"sessions": sessions, "count": len(sessions), "user_id": user_id}
+    return {"sessions": sessions, "count": len(sessions), "user_id": agent.user_id}
 
 
 @chat_router.get("/history/{session_id}")
-async def get_session_history(session_id: str, agent: Agent = Depends(get_agent)):
+async def get_session_history(agent: Agent = Depends(get_agent_for_session)):
     """Get conversation history for a specific session using Agno standard method"""
-    # Use Agno's standard method as per docs
-    messages = agent.get_messages_for_session(session_id=session_id)
-
-    # Convert to serializable format using model_dump() as per Agno docs
+    messages = agent.get_messages_for_session(session_id=agent.session_id)
     serializable_messages = [
         msg.model_dump(include={"role", "content", "timestamp", "created_at"})
         for msg in messages
@@ -204,6 +216,6 @@ async def get_session_history(session_id: str, agent: Agent = Depends(get_agent)
 
     return {
         "history": serializable_messages,
-        "session_id": session_id,
+        "session_id": agent.session_id,
         "count": len(serializable_messages),
     }
